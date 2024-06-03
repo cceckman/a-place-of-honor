@@ -1,0 +1,25 @@
+
+* { margin:0; padding:0; } /* to remove the top and left whitespace */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+p#float {
+    position: fixed;
+    right: 1em;
+    bottom: 1em;
+    background: white;
+    font-weight: bolder;
+    width: min-content;
+    padding: 0.5em;
+    border-radius: 0.25em;
+}
