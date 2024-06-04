@@ -11,6 +11,8 @@ const DEFAULT_ROOM_SENSES = {
     "taste": "You detect no distinct taste."
 };
 const START_LOCATION = "outside";
+const MOVE_VERBS = ["go", "exit", "move"];
+const CARDINAL_DIRECTIONS = ["north", "south", "east", "west"];
 
 
 const PERMANENT = {
@@ -28,7 +30,11 @@ const PERMANENT = {
     },
     "rooms": {
         "outside": {
-            "exits": { "west": "information center" },
+            "exits": {
+                "west": "information center",
+                "burm": "outside",
+                "information center": "information center"
+            },
             // Rads per second
             "rad_rate": 0,
             "senses": {},
@@ -36,7 +42,9 @@ const PERMANENT = {
         "information center": {
             "exits": {
                 "east": "outside",
-                "west": "hot cell"
+                "outside": "outside",
+                "west": "hot cell",
+                "door": "hot cell"
             },
             "rad_rate": 0.1,
             "senses": {},
@@ -129,7 +137,7 @@ class State {
         this.render();
     }
 
-    render() {
+    render(error) {
         console.log(this)
         let senses = [];
         let room = this.rooms[this.player.location];
@@ -144,21 +152,43 @@ You are at: ${this.player.location}.
 // TODO: Add senses here
 //
 // TODO: Add health indicator here
+
+${error || ""}
         `;
 
         // TODO: Trash text
         // TODO Display items
         // TODO include 
 
-        // TODO: clear the last input
+        if (!error) {
+            this.textin.value = "";
+        }
         this.presentation.innerText = text;
+    }
+
+    currentRoom() {
+        return this.rooms[this.player.location];
     }
 
     act() {
         // TODO: Parse user input and change the current state, then...
         //
         //
-        this.render()
+        const tokenizedAction = this.textin.value.split(" ");
+        let error = `I don't know ${tokenizedAction[0]}`;
+        if (MOVE_VERBS.includes(tokenizedAction[0])) {
+            error = this.movePlayer(tokenizedAction.slice(1).join(" "));
+        }
+        this.render(error);
+    }
+
+    movePlayer(direction) {
+        const destination = this.currentRoom().exits[direction];
+        if (destination) {
+            this.player.location = destination;
+            return "";
+        }
+        return `Cannot move to ${direction}`;
     }
 }
 
