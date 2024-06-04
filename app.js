@@ -6,8 +6,8 @@ const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
     hear: "You hear nothing.",
     touch: "You feel nothing but whatever is below your feet.",
-    smell: "You detect no distinct smell.",
-    taste: "You detect no distinct taste.",
+    smell: "You smell nothing distinct.",
+    taste: "You taste nothing distinct.",
 };
 const START_LOCATION = "outside";
 const MOVE_VERBS = ["go", "exit", "move"];
@@ -139,6 +139,7 @@ class State {
         main.appendChild(this.presentation);
 
         const form = document.createElement("form");
+        form.class = "action";
         form.addEventListener("submit", (ev) => {
             ev.preventDefault();
             this.act();
@@ -147,7 +148,7 @@ class State {
 
         this.textin = document.createElement("input");
         this.textin.type = "text";
-        this.textin.id = "action";
+        this.textin.class = "action";
         form.appendChild(this.textin);
 
         this.button = document.createElement("button");
