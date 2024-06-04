@@ -12,6 +12,14 @@ const DEFAULT_ROOM_SENSES = {
 const START_LOCATION = "outside";
 const MOVE_VERBS = ["go", "exit", "move"];
 const CARDINAL_DIRECTIONS = ["north", "south", "east", "west"];
+const DAMAGE_THRESHOLDS = {
+    0: { symptoms: [], nextThreshold: 100 },
+    100: {
+        symptoms: ["you cough"],
+        nextThreshold: 200,
+    },
+    200: { symptoms: ["you feel so thirsty"], nextThreshold: Infinity },
+};
 
 const PERMANENT = {
     items: {
@@ -60,7 +68,7 @@ const PERMANENT = {
         },
         "hot cell": {
             exits: { east: "information center" },
-            rad_rate: 1,
+            rad_rate: 10,
             senses: {},
         },
     },
@@ -102,6 +110,9 @@ class Player {
         this.damage = saved?.player?.damage ?? 0;
         // always set the last dose timer to the current time so that players do not accumulate dosage while the game is closed
         this.lastDoseTimestamp = Date.now();
+        this.currentDamageThreshold =
+            saved?.player?.currentDamageThreshold ?? DAMAGE_THRESHOLDS[0];
+        this.symptoms = saved?.player?.currentDamageThreshold ?? new Set([]);
 
         // Knowledge is a set of known words.
         // We don't (yet) keep a full translation table, in either direction;
@@ -152,16 +163,19 @@ class State {
     render(error) {
         console.log(this);
         const room = this.currentRoom();
+        const selectedSymptom =
+            Array.from(this.player.symptoms)[
+                Math.floor(Math.random() * this.player.symptoms.size)
+            ] ?? "";
         const text = `
 You are at: ${this.player.location}.
+${selectedSymptom}
 
 ${Object.keys(DEFAULT_ROOM_SENSES)
     .map((sense) => {
         return this.renderPassiveSense(sense);
     })
     .join("\n")}
-//
-// TODO: Add health indicator here
 
 ${error || ""}
         `;
@@ -202,13 +216,13 @@ ${error || ""}
         // TODO: Parse user input and change the current state, then...
         //
         //
-        applyDose();
+        this.applyDose();
         const tokenizedAction = this.textin.value.split(" ");
         let error = `I don't know ${tokenizedAction[0]}`;
         if (MOVE_VERBS.includes(tokenizedAction[0])) {
             error = this.movePlayer(tokenizedAction.slice(1).join(" "));
         }
-        applyDose();
+        this.applyDose();
         this.render(error);
     }
 
@@ -223,6 +237,9 @@ ${error || ""}
 
     applyDose() {
         // cancel any existing dose callback timer
+        if (this.timerID) {
+            clearTimeout(this.timerID);
+        }
 
         // record last time dosage was applied
         let now = Date.now();
@@ -234,8 +251,30 @@ ${error || ""}
         // apply dosage to damage
         this.player.damage += (timeSinceLastDosage * this.player.dosage) / 1000;
 
+        // update player's dosage threshold
+        if (
+            this.player.damage >=
+            this.player.currentDamageThreshold.nextThreshold
+        ) {
+            this.player.currentDamageThreshold =
+                DAMAGE_THRESHOLDS[
+                    this.player.currentDamageThreshold.nextThreshold
+                ];
+        }
+
+        // select a symptom for the player based on their dosage
+        let availableSymptoms = this.player.currentDamageThreshold.symptoms;
+        if (availableSymptoms.length) {
+            let selectedSymptomIndex = Math.floor(
+                Math.random() * availableSymptoms.length
+            );
+            let selectedSymptom = availableSymptoms[selectedSymptomIndex];
+            this.player.symptoms.add(selectedSymptom);
+        }
+
         // compute time until next threshhold at current player.dosage
         // set dosage callback and store timer on state
+        this.timerID = setTimeout(this.applyDose.bind(this), 1000);
     }
 }
 
