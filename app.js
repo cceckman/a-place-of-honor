@@ -93,8 +93,6 @@ class Player {
 
 class State {
     constructor(permanent, saved) {
-        // TODO: This apparently doesn't load "rooms";
-        // we'll need to debug that before anything works.
         this.rooms = {};
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
