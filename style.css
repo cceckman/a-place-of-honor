@@ -28,3 +28,9 @@ form.action {
     display: block;
     width: 100%;
 }
+
+p {
+    padding-bottom: 0.5rem;
+    /* one line plus padding */
+    min-height: 1.5rem;
+}

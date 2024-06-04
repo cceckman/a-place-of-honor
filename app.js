@@ -9,6 +9,14 @@ const DEFAULT_ROOM_SENSES = {
     smell: "You smell nothing distinct.",
     taste: "You taste nothing distinct.",
 };
+const DEFAULT_ITEM_SENSES = {
+    see: "You cannot see it.",
+    hear: "It makes no distinguishable sound.",
+    touch: "It has no distinguishable feeling.",
+    smell: "It has no distinct smell.",
+    taste: "It has no distinct taste.",
+}
+
 const START_LOCATION = "outside";
 const MOVE_VERBS = ["go", "exit", "move"];
 const CARDINAL_DIRECTIONS = ["north", "south", "east", "west"];
@@ -21,9 +29,33 @@ const DAMAGE_THRESHOLDS = {
     200: { symptoms: ["you feel so thirsty"], nextThreshold: Infinity },
 };
 
+const INSPECTIONS = {
+    "see": ["look"],
+    "hear": ["listen"],
+    "smell": ["sniff", "inhale"],
+    "taste": ["lick"],
+    "touch": ["feel"],
+}
+
+function canonicalizeSense(verb) {
+    const lower = verb.toLowerCase();
+    for (const [canon, aliases] of Object.entries(INSPECTIONS)) {
+        if (lower === canon || aliases.includes(lower)) {
+            return canon;
+        }
+    }
+    return null;
+}
+
+/// Obfuscate text, according to the current knowledge.
+function trashText(original, _knowledge) {
+    return original;
+}
+
 const PERMANENT = {
     items: {
         monolith1: {
+            aliases: ["monolith", "stone", "gray stone monolith"],
             moveable: false,
             writing: "not a place of honor",
             sense: {
@@ -37,8 +69,15 @@ const PERMANENT = {
             },
         },
         berm1: {
+            aliases: ["berm", "slope", "earth"],
             moveable: false,
-            sense: {},
+            sense: {
+                "see": "To the west is a berm, a slope of grass-covered earth rising above your head. It seems to be level beyond that point. It extends thousands of strides to the north and south.",
+                "hear": "It is covered in grass, which rustles softly in the gentle breeze.",
+                "touch": "The ground is grass-covered, but not soft; it feels well-packed.",
+                "smell": "It has a slight smell of grass and earth, but not of loam.",
+                "taste": "It tastes of dirt, low in clay."
+            },
             location: "outside",
             passive: {
                 see: "a slope of earth rising above your head",
@@ -134,9 +173,17 @@ class State {
         loading.remove();
         const main = document.getElementsByTagName("main").item(0);
 
-        this.presentation = document.createElement("p");
-        this.presentation.id = "presentation";
-        main.appendChild(this.presentation);
+        this.perception = document.createElement("p");
+        this.perception.id = "perception";
+        main.appendChild(this.perception);
+
+        this.symptoms = document.createElement("p");
+        this.symptoms.id = "symptoms";
+        main.appendChild(this.symptoms);
+
+        this.errors = document.createElement("p");
+        this.errors.id = "errors";
+        main.appendChild(this.errors);
 
         const form = document.createElement("form");
         form.class = "action";
@@ -161,34 +208,27 @@ class State {
         this.render();
     }
 
-    render(error) {
+    render(error = "") {
         console.log(this);
-        const room = this.currentRoom();
+
+        if (!this.currentDescription) {
+            this.currentDescription = this.renderPassiveSenses();
+        }
+        this.perception.innerText = this.currentDescription;
+
         const selectedSymptom =
             Array.from(this.player.symptoms)[
-                Math.floor(Math.random() * this.player.symptoms.size)
+            Math.floor(Math.random() * this.player.symptoms.size)
             ] ?? "";
-        const text = `
-You are at: ${this.player.location}.
-${selectedSymptom}
-
-${Object.keys(DEFAULT_ROOM_SENSES)
-    .map((sense) => {
-        return this.renderPassiveSense(sense);
-    })
-    .join("\n")}
-
-${error || ""}
-        `;
+        this.symptoms.innerText = selectedSymptom;
+        this.errors.innerText = error;
+        if (!error) {
+            this.textin.value = "";
+        }
 
         // TODO: Trash text
         // TODO Display items
         // TODO include
-
-        if (!error) {
-            this.textin.value = "";
-        }
-        this.presentation.innerText = text;
     }
 
     renderPassiveSense(sense) {
@@ -208,6 +248,15 @@ ${error || ""}
         }
         return `You ${sense} ${senses.join(", ")}.`;
     }
+    renderPassiveSenses() {
+        return `
+${Object.keys(DEFAULT_ROOM_SENSES)
+                .map((sense) => {
+                    return this.renderPassiveSense(sense);
+                })
+                .join("\n")}
+`
+    }
 
     currentRoom() {
         return this.rooms[this.player.location];
@@ -219,9 +268,20 @@ ${error || ""}
         //
         this.applyDose();
         const tokenizedAction = this.textin.value.split(" ");
-        let error = `I don't know ${tokenizedAction[0]}`;
-        if (MOVE_VERBS.includes(tokenizedAction[0])) {
-            error = this.movePlayer(tokenizedAction.slice(1).join(" "));
+        const verb = tokenizedAction[0].toLowerCase();
+        const restString = tokenizedAction.slice(1).join(" ");
+        // const restArray = tokenizedAction.slice(1);
+        let error = `I don't know ${verb}`;
+        const perceptionVerb = canonicalizeSense(verb);
+        if (MOVE_VERBS.includes(verb)) {
+            error = this.movePlayer(restString);
+        } else if (perceptionVerb) {
+            error = this.inspect(perceptionVerb, restString);
+        } else if (!verb) {
+            // Empty "enter"; clear the most-recent-output,
+            // to go back to the room description.
+            this.currentDescription = ""
+            error = ""
         }
         this.applyDose();
         this.render(error);
@@ -231,9 +291,39 @@ ${error || ""}
         const destination = this.currentRoom().exits[direction];
         if (destination) {
             this.player.location = destination;
+            this.currentDescription = this.renderPassiveSenses();
             return "";
         }
         return `Cannot move to ${direction}`;
+    }
+
+    inspect(verb, remainder) {
+        let itemName = remainder.trim().toLowerCase();
+        if (!itemName.trim()) {
+            this.currentDescription = this.renderPassiveSense(verb);
+            return "";
+        }
+
+        // Look up the item in the room.
+        for (const [_itemId, item] of Object.entries(this.currentRoom().items)) {
+            if (item.aliases.includes(itemName)) {
+                this.currentDescription = item.sense[verb] ?? DEFAULT_ITEM_SENSES[verb];
+
+                // TODO:
+                // If looking (or touching?),
+                // include the writing with translation.
+                // trashText has a stub.
+                /*
+                if (item.writing) {
+                    this.currentDescription += "The text reads: \n" + trashText(item.writin
+                }*/
+                // TODO:
+                // If there is both "writing" and "translation",
+                // print both, and add to the player's knowledge.
+                return "";
+            }
+        }
+        return `There is no ${itemName} nearby.`;
     }
 
     applyDose() {
@@ -259,7 +349,7 @@ ${error || ""}
         ) {
             this.player.currentDamageThreshold =
                 DAMAGE_THRESHOLDS[
-                    this.player.currentDamageThreshold.nextThreshold
+                this.player.currentDamageThreshold.nextThreshold
                 ];
         }
 
