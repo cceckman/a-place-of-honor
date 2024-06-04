@@ -5,9 +5,9 @@ const NOSMELL_ITEM = "It has no distinct smell.";
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
     hear: "You hear nothing.",
-    touch: "You feel nothing but whatever is below your feet.",
-    smell: "You smell nothing distinct.",
-    taste: "You taste nothing distinct.",
+    touch: "You feel your shoes and clothes.",
+    smell: "You smell nothing.",
+    taste: "You taste your mouth.",
 };
 const DEFAULT_ITEM_SENSES = {
     see: "You cannot see it.",
@@ -186,7 +186,7 @@ class State {
         main.appendChild(this.errors);
 
         const form = document.createElement("form");
-        form.class = "action";
+        form.classList.add("action");
         form.addEventListener("submit", (ev) => {
             ev.preventDefault();
             this.act();
@@ -195,12 +195,12 @@ class State {
 
         this.textin = document.createElement("input");
         this.textin.type = "text";
-        this.textin.class = "action";
+        this.textin.classList.add("action")
         form.appendChild(this.textin);
 
         this.button = document.createElement("button");
         this.button.id = "submit";
-        this.button.value = "Act.";
+        this.button.classList.add("action");
         this.button.type = "submit";
         this.button.innerText = "Act.";
         form.appendChild(this.button);
