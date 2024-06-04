@@ -61,8 +61,8 @@ class Room {
         this.exits = static_room.exits;
 
         this.items = {} // ID to description
-        if (saved !== null) {
-            for (const [itemid, item] of saved.items.entries) {
+        if (saved !== null && saved !== undefined) {
+            for (const [itemid, item] of saved?.items?.entries) {
                 if (item.location === roomid) {
                     this.items[itemid] = item;
                 }
@@ -70,11 +70,11 @@ class Room {
         }
         // static.rooms[].item contains just item IDs;
         // separate "items" table has the other state
-        for (const [itemid, item] of permanent.items.entries) {
-            if (!saved.items.contains(itemid) && item.location == roomid) {
-                this.items[itemid] = item;
+        Object.entries(permanent.items).forEach(([itemId, item]) => {
+            if (!saved?.items?.contains(itemId) && item.location == roomid) {
+                this.items[itemId] = item;
             }
-        }
+        });
     }
 }
 
@@ -96,7 +96,7 @@ class State {
         // TODO: This apparently doesn't load "rooms";
         // we'll need to debug that before anything works.
         this.rooms = {};
-        for (const roomid in permanent.rooms.entries) {
+        for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
         this.player = new Player(saved);
@@ -135,11 +135,11 @@ class State {
         console.log(this)
         let senses = [];
         let room = this.rooms[this.player.location];
-        for (const sense of room.senses) {
+        Object.entries(room.senses).forEach(() => {
             // TODO: Add the senses to "senses",
             // join them into a string for presentation.
             // We'll let the user pick a sense for each item.
-        }
+        });
         const text = `
 You are at: ${this.player.location}.
 
