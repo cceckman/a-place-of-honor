@@ -26,13 +26,24 @@ const PERMANENT = {
                 "taste": "Stony and mineral-like."
             },
             "location": "outside",
+            "passive": {
+                "see": "a gray stone monolith"
+            }
+        },
+        "berm1": {
+            "moveable": false,
+            "sense": {},
+            "location": "outside",
+            "passive": {
+                "see": "a slope of earth rising above your head"
+            }
         }
     },
     "rooms": {
         "outside": {
             "exits": {
                 "west": "information center",
-                "burm": "outside",
+                "berm": "outside",
                 "information center": "information center"
             },
             // Rads per second
@@ -139,17 +150,13 @@ class State {
 
     render(error) {
         console.log(this)
-        let senses = [];
-        let room = this.rooms[this.player.location];
-        Object.entries(room.senses).forEach(() => {
-            // TODO: Add the senses to "senses",
-            // join them into a string for presentation.
-            // We'll let the user pick a sense for each item.
-        });
+        const room = this.currentRoom();
         const text = `
 You are at: ${this.player.location}.
 
-// TODO: Add senses here
+${Object.keys(DEFAULT_ROOM_SENSES).map(sense => {
+    return this.renderPassiveSense(sense);
+}).join("\n")}
 //
 // TODO: Add health indicator here
 
@@ -164,6 +171,22 @@ ${error || ""}
             this.textin.value = "";
         }
         this.presentation.innerText = text;
+    }
+
+    renderPassiveSense(sense) {
+        const room = this.currentRoom();
+        let senses = [room.senses[sense]];
+        const itemPassives = Object.entries(room.items).map(([_itemId, item]) => {
+            return item.passive[sense];
+        });
+        senses = [ ...senses, ...itemPassives ].filter(sense => sense);
+        if (senses.length > 1) {
+            senses[senses.length - 1] = `and ${senses[senses.length - 1]}`
+        }
+        if (senses.length === 0) {
+            return DEFAULT_ROOM_SENSES[sense];
+        }
+        return `You ${sense} ${senses.join(", ")}.`;
     }
 
     currentRoom() {
