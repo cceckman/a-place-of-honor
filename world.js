@@ -81,7 +81,7 @@ export const PERMANENT = {
             // Rads per second
             rad_rate: 0,
             senses: {},
-            drone_volume: -13,
+            drone_volume: -4,
         },
         "information center": {
             exits: {
@@ -95,13 +95,13 @@ export const PERMANENT = {
                 "see": "four stone walls without a roof in a rectangle, with their tops just at your reach",
                 "touch": "four stone walls without a roof in a rectangle, with their tops just at your reach"
             },
-            drone_volume: -8,
+            drone_volume: 0,
         },
         "hot cell": {
             exits: { east: "information center" },
             rad_rate: 10,
             senses: {},
-            drone_volume: -3
+            drone_volume: 8
         },
     },
 };

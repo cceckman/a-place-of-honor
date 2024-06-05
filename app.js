@@ -291,6 +291,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 this.player = new Player();
                 this.currentDescription = "";
                 error = "";
+                this.music.restartArpeggio();
             } else {
                 error = `I can't ${verb}. I am dead.`;
             }
@@ -379,6 +380,7 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
 
     killPlayer() {
         this.player = null;
+        this.music.stopArpeggioAndReduceDrone();
         this.render();
     }
 

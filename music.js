@@ -1,5 +1,7 @@
+const DEFAULT_DRONE_VOLUME = -4;
+
 const synth = new Tone.Synth({
-    volume: -4
+    volume: DEFAULT_DRONE_VOLUME
 }).toDestination();
 const droneVolume = new Tone.Volume(-13).toDestination();
 const droneSynth1 = new Tone.Oscillator({
@@ -15,6 +17,8 @@ const arpeggio1Notes = [ "C3", "F3", "Bb3", "Eb4", "Bb3", "F3" ];
 const arpeggio2Notes = [ "C3", "A3", "E4", "B4", "E4", "A3" ];
 const arpeggioNotes = [ ...arpeggio1Notes, ...arpeggio1Notes, ...arpeggio2Notes, ...arpeggio2Notes ];
 
+const DEFAULT_DETUNE = 10;
+
 function gaussianRandom(mean = 0, stdev = 1) {
     const u = 1 - Math.random(); // Converting [0,1) to (0,1]
     const v = Math.random();
@@ -23,11 +27,20 @@ function gaussianRandom(mean = 0, stdev = 1) {
     return z * stdev + mean;
 }
 
+const instrumentToggles = {
+    arpeggio: Tone.Transport,
+    droneSynth1,
+    droneSynth2
+}
+
+const allInstrumentNames = Object.keys(instrumentToggles);
+
 export default class Music {
 
     musicOn = false;
     sequence;
-    detune = 10;
+    detune = DEFAULT_DETUNE;
+    activeInstrumentNames = allInstrumentNames;
 
     constructor() {
         this.musicToggle = document.createElement("button");
@@ -47,28 +60,48 @@ export default class Music {
 
     }
 
+    instrumentControl(instrumentName, isOn) {
+        const instrumentToggle = instrumentToggles[instrumentName];
+        if (isOn) {
+            instrumentToggle.start();
+        } else {
+            instrumentToggle.stop();
+        }
+    }
+
     toggleMusic() {
         this.musicOn = !this.musicOn;
         this.musicToggle.innerText = this.musicOn ? "Music Off" : "Music On";
-        if (this.musicOn) {
-            Tone.Transport.start();
-            droneSynth1.start();
-            droneSynth2.start();
-        } else {
-            Tone.Transport.stop();
-            droneSynth1.stop();
-            droneSynth2.stop();
-        }   
+        this.toggleInstruments(this.activeInstrumentNames);
+    }
+
+    toggleInstruments(instrumentNames, isOn = this.musicOn) {
+        for (let instrumentName of instrumentNames) {
+            this.instrumentControl(instrumentName, isOn);
+        }
     }
 
     increaseDetune() {
         this.detune += this.detune;
     }
 
+    stopArpeggioAndReduceDrone() {
+        this.onlyDrone = true;
+        this.toggleInstruments([ "arpeggio" ], false);
+        this.activeInstrumentNames = [ "droneSynth1", "droneSynth2" ];
+        this.setDroneVolume(DEFAULT_DRONE_VOLUME);
+    }
+
+    restartArpeggio() {
+        this.onlyDrone = false;
+        this.detune = DEFAULT_DETUNE;
+        this.activeInstrumentNames = allInstrumentNames;
+        this.toggleInstruments([ "arpeggio" ])
+    }
+
     setDroneVolume(volume) {
-        console.log(`new volume: ${volume}`)
-        droneVolume.set("volume", volume);
-        console.log(droneVolume.get("volume"));
+        droneVolume.set({ volume: volume });
+        this.toggleInstruments([ "droneSynth1", "droneSynth2" ]);
     }
 
 }
