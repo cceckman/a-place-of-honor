@@ -1,5 +1,6 @@
 import Music from "./music.js";
 import PERMANENT from "./world.js";
+import { pushToLoki } from "./telemetry.js";
 
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
@@ -347,6 +348,22 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         }
         this.applyDose();
         this.render(error);
+
+        var logMessage = this.textin.value;
+        var tags = {
+            user: "random",
+            level: error ? "error" : "info",
+            trigger: "action",
+        };
+        if (error !== null) {
+            pushToLoki(logMessage, tags)
+                .then((data) => {
+                    console.log("Response:", data);
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
     }
 
     movePlayer(direction) {
