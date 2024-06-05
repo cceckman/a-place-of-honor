@@ -18,14 +18,14 @@ const DEFAULT_ITEM_SENSES = {
 
 const START_LOCATION = "outside";
 const MOVE_VERBS = ["go", "exit", "move"];
-const DAMAGE_THRESHOLDS = {
-    0: { symptoms: [], nextThreshold: 100 },
-    100: {
-        symptoms: ["you cough"],
-        nextThreshold: 200,
-    },
-    200: { symptoms: ["you feel so thirsty"], nextThreshold: Infinity },
-};
+const CARDINAL_DIRECTIONS = ["north", "south", "east", "west"];
+const DAMAGE_LEVELS = [
+    { symptoms: [], nextThreshold: 100 },
+    { symptoms: ["You cough."], nextThreshold: 200, },
+    { symptoms: ["You feel so thirsty."], nextThreshold: 600 },
+    { symptoms: ["You cough. You "], nextThreshold: 10000 },
+    { symptoms: ["You pass out."], nextThreshold: Infinity },
+];
 
 const INSPECTIONS = {
     "see": ["look", "read"],
@@ -149,9 +149,8 @@ class Player {
         this.damage = saved?.player?.damage ?? 0;
         // always set the last dose timer to the current time so that players do not accumulate dosage while the game is closed
         this.lastDoseTimestamp = Date.now();
-        this.currentDamageThreshold =
-            saved?.player?.currentDamageThreshold ?? DAMAGE_THRESHOLDS[0];
-        this.symptoms = saved?.player?.currentDamageThreshold ?? new Set([]);
+        this.currentDamageLevel = saved?.player?.currentDamageThreshold ?? 0;
+        this.symptoms = saved?.player?.symptoms ?? new Set([]);
 
         // Knowledge is a set of known words.
         // We don't (yet) keep a full translation table, in either direction;
@@ -364,16 +363,13 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         // update player's dosage threshold
         if (
             this.player.damage >=
-            this.player.currentDamageThreshold.nextThreshold
+            this.player.currentDamageLevel.nextThreshold
         ) {
-            this.player.currentDamageThreshold =
-                DAMAGE_THRESHOLDS[
-                this.player.currentDamageThreshold.nextThreshold
-                ];
+            this.player.currentDamageLevel = this.player.currentDamageLevel + 1;
         }
 
         // select a symptom for the player based on their dosage
-        let availableSymptoms = this.player.currentDamageThreshold.symptoms;
+        let availableSymptoms = DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
         if (availableSymptoms.length) {
             let selectedSymptomIndex = Math.floor(
                 Math.random() * availableSymptoms.length
@@ -382,7 +378,7 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             this.player.symptoms.add(selectedSymptom);
         }
 
-        // compute time until next threshhold at current player.dosage
+        // TODO: compute time until next threshhold at current player.dosage
         // set dosage callback and store timer on state
         this.timerID = setTimeout(this.applyDose.bind(this), 1000);
     }
