@@ -12,6 +12,29 @@ const WARNING_LINES = [
 
 const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor", ...WARNING_LINES.slice(3)];
 
+/*
+ * items: mapping of itemId -> Item
+ * Item: mapping of:
+ *      aliases: list of strings; alternative names that can be used to refer to this item.
+ *      moveable: whether this can be moved.
+ *          TODO: Unused.
+ *      writing: Text to display as writing on this panel.
+ *      rosetta: (String of) Text that is translated on this panel. Percieving the panel may add these to knowledge.
+ *      passive: Sense table, presented passively (i.e. when just looking at the room / container.)
+ *      sense: Sense table, presented actively (i.e. when specifically looking at this item)
+ *      location: roomId where this item is.
+ *          TODO: Or something other than a room ID?
+ *
+ * rooms: mapping of roomId -> Room
+ * Room: mapping of:
+ *      exits: mapping of string -> roomId. Can 
+ *      rad_rate: ambient radiation in the room, rads per second.
+ *      senses: Sense table.
+ *      drone_volume: drone volume adjustment (typically negative, deciBels)
+ *
+ *  Sense table: mapping of sense (canonical) to description.
+ */
+
 export const PERMANENT = {
     items: {
         monolith1: {
