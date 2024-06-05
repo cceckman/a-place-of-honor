@@ -12,14 +12,63 @@ const WARNING_LINES = [
 
 const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor", ...WARNING_LINES.slice(3)];
 
+/*
+ * items: mapping of itemId -> Item
+ * Item: mapping of:
+ *      aliases: list of strings; alternative names that can be used to refer to this item.
+ *      moveable: whether this can be moved.
+ *          TODO: Unused.
+ *      writing: Text to display as writing on this panel.
+ *      rosetta: (String of) Text that is translated on this panel. Percieving the panel may add these to knowledge.
+ *      passive: Sense table, presented passively (i.e. when just looking at the room / container.)
+ *      sense: Sense table, presented actively (i.e. when specifically looking at this item)
+ *      location: roomId where this item is.
+ *          TODO: Or something other than a room ID?
+ *
+ * rooms: mapping of roomId -> Room
+ * Room: mapping of:
+ *      exits: mapping of string -> roomId. Can 
+ *      rad_rate: ambient radiation in the room, rads per second.
+ *      senses: Sense table.
+ *      drone_volume: drone volume adjustment (typically negative, deciBels)
+ *
+ *  Sense table: mapping of sense (canonical) to description.
+ */
+
 export const PERMANENT = {
     items: {
+        leader: {
+            aliases: ["leader", "shaman", "papa"],
+            moveable: false,
+            passive: {
+                see: "the leader in the center, facing you and speaking to you",
+                hear: "the leader asking you a question",
+            },
+            location: "home",
+            sense: {
+                see: "The leader addresses you, asking a question, and gesture to the carved tablet they hold.",
+                hear: "The leader asks you to go west to the place of honor, and bring back its power to your community."
+            }
+        },
+        leader_tablet: {
+            aliases: ["tablet", "stone"],
+            moveable: false,
+            passive: {
+                see: "a stone tablet in the leader's hands",
+            },
+            writing: "a place of honor",
+            location: "home",
+            sense: {
+                see: "The tablet is chiseled with both ancient runes and a modern script.",
+            },
+            rosetta: "place honor"
+        },
         monolith1: {
             aliases: ["monolith", "stone", "gray stone monolith"],
             moveable: false,
             writing: WARNING_LINES.slice(0, 5).join("\n"),
             sense: {
-                see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away. You recognize some of an ancient language.",
+                see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away.",
                 touch: "It is cold and smooth",
                 taste: "Stony and mineral-like.",
             },
@@ -28,19 +77,8 @@ export const PERMANENT = {
                 see: "a gray stone monolith",
             },
         },
-        info_text_2: {
-            aliases: ["first panel", "second panel", "other panels", "panels"],
-            moveable: false,
-            location: "information center",
-            passive: {
-                see: "two stone panels with text",
-            },
-            sense: {
-                see: "A stone panel with some sort of engraving on it. It might be writing, but you do not recognize the characters.",
-            }
-        },
         info_text_1: {
-            aliases: ["last panel", "third panel", "writing", "damaged panel", "altered panel"],
+            aliases: ["first panel", "panels", "writing", "damaged panel", "altered panel"],
             moveable: false,
             location: "information center",
             passive: {
@@ -54,6 +92,17 @@ export const PERMANENT = {
             },
             rosetta: "not place honor",
             writing: INFOCENTER_PANEL1.join("\n")
+        },
+        illegible_panels: {
+            aliases: ["second panel", "third panel", "other panels", "panels"],
+            moveable: false,
+            location: "information center",
+            passive: {
+                see: "two more stone panels with text",
+            },
+            sense: {
+                see: "A stone panel with some sort of engraving on it. It might be writing, but you do not recognize the characters.",
+            }
         },
         berm1: {
             aliases: ["berm", "slope", "earth", "grass"],
@@ -92,8 +141,8 @@ export const PERMANENT = {
             },
             rad_rate: 0.1,
             senses: {
-                "see": "four stone walls without a roof in a rectangle, with their tops just at your reach",
-                "touch": "four stone walls without a roof in a rectangle, with their tops just at your reach"
+                "see": "four stone walls without a roof in a rectangle, with their tops at the edge of your reach",
+                "touch": "four stone walls without a roof in a rectangle, with their tops at the edge of your reach"
             },
             drone_volume: 0,
         },
@@ -103,7 +152,23 @@ export const PERMANENT = {
             senses: {},
             drone_volume: 8
         },
-    },
+        home: {
+            exits: {
+                west: "outside",
+                "to the place of honor": "outside",
+            },
+            // Rads per second
+            rad_rate: 0,
+            senses: {
+                see: "your community looking at you",
+                hear: "the crowd's bated breath",
+                touch: "the heat from the crowd around you despite the cold air",
+                smell: "hundreds of bodies in close proximity",
+                taste: "your own sweat on your lips"
+            },
+            drone_volume: -Infinity
+        }
+    }
 };
 
 export default PERMANENT;

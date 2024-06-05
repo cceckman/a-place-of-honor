@@ -100,6 +100,7 @@ blockquote {
     border-radius: var(--curve);
 
     padding: calc(2 * var(--curve));
+    word-spacing: 0.5em;
 }
 
 .margin-top {

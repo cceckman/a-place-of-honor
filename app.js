@@ -16,7 +16,7 @@ const DEFAULT_ITEM_SENSES = {
     taste: "It has no distinct taste.",
 };
 
-const START_LOCATION = "outside";
+const START_LOCATION = "home";
 const MOVE_VERBS = ["go", "exit", "move"];
 const RESTART_VERBS = ["restart", "continue"];
 const DAMAGE_LEVELS = [
@@ -190,19 +190,20 @@ class Player {
         // we just obfuscate unknown words.
         // We also keep "\n" here so we can preserve newlines in the input >.>
         this.knowledge =
-            saved?.player?.knowledge ?? new Set(["place", "honor", "\n"]);
+            saved?.player?.knowledge ?? new Set([]);
     }
 }
 
 class State {
     constructor(permanent, saved) {
+        // Set up game state:
         this.music = new Music();
         this.rooms = {};
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
+        this.newInvestigator(saved)
         console.log(this.rooms)
-        this.player = new Player(saved);
 
         const loading = document.getElementById("loading-indicator");
         loading.remove();
@@ -243,6 +244,14 @@ class State {
         main.appendChild(this.music.musicToggle);
 
         this.render();
+    }
+
+    newInvestigator(saved) {
+        this.player = new Player(saved)
+        this.currentDescription = "";
+
+        this.music.setDroneVolume(this.currentRoom().drone_volume)
+        this.music.restartArpeggio();
     }
 
     render(error = "") {
@@ -316,10 +325,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         // TODO - if player is null only allow the "restart" action (or "continue", or whatever we call it)
         if (this.player === null) {
             if (RESTART_VERBS.includes(verb)) {
-                this.player = new Player();
-                this.currentDescription = "";
+                this.newInvestigator()
                 error = "";
-                this.music.restartArpeggio();
             } else {
                 error = `I can't ${verb}. I am dead.`;
             }
@@ -382,13 +389,14 @@ The text reads:
 `;
                 }
 
-                if (["see"].includes(verb) && item.rosetta) {
+                if (["see"].includes(verb) && item.rosetta && this.learn(item.rosetta)) {
                     let hidden = await hideText(item.rosetta, new Set());
                     let unhidden = item.rosetta;
+
                     this.currentDescription += `<br />
 You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
 `;
-                    this.learn(item.rosetta);
+
                 }
 
                 // No error:
@@ -398,12 +406,16 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         return `There is no ${itemName} nearby.`;
     }
 
+    // Returns true if something new was learned.
     learn(text) {
+        const knownBefore = this.player.knowledge.size;
         for (const { isWord, word } of getWords(text)) {
             if (isWord) {
                 this.player.knowledge.add(word.toLowerCase());
             }
         }
+        // Return "true" if something was learned:
+        return this.player.knowledge.size != knownBefore
     }
 
     killPlayer() {
@@ -465,4 +477,6 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
     }
 }
 
-const state = new State(PERMANENT, /*saved = */ undefined);
+// Attach to the window object for debugging:
+window.gameState = new State(PERMANENT, /*saved = */ undefined);
+
