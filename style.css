@@ -85,3 +85,9 @@ p {
     /* one line plus padding */
     min-height: 1.5rem;
 }
+
+q,
+blockquote {
+    background: var(--input-background);
+    color: var(--input-text);
+}

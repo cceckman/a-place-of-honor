@@ -47,8 +47,29 @@ function canonicalizeSense(verb) {
     return null;
 }
 
-function hideWord(original) {
-    return original.toUpperCase();
+async function hideWord(input) {
+    input = input.toLowerCase();
+    let linear_a_unicode_block = 0x10600;
+
+    // Encode the input string as a Uint8Array (buffer)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+
+    // Hash the input using SHA-256
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+
+    // Convert the hash buffer to a byte array
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+    // Map each byte to a character in the Linear A Unicode block
+    let obfuscatedWord = hashArray
+        .map((byte) => {
+            return String.fromCodePoint(linear_a_unicode_block + byte);
+        })
+        .slice(0, input.length)
+        .join("");
+
+    return obfuscatedWord;
 }
 
 // Iterator over words and non-word items.
@@ -77,7 +98,7 @@ function* getWords(original) {
 }
 
 /// Obfuscate text, according to the current knowledge.
-function hideText(original, knowledge) {
+async function hideText(original, knowledge) {
     // Try to preserve blank spaces and punctuation;
     // "just" get words.
     let output = "";
@@ -87,7 +108,7 @@ function hideText(original, knowledge) {
         } else if (knowledge.has(word.toLowerCase())) {
             output += word;
         } else {
-            output += hideWord(word);
+            output += await hideWord(word);
         }
 
     }
@@ -114,7 +135,7 @@ const PERMANENT = {
         monolith1: {
             aliases: ["monolith", "stone", "gray stone monolith"],
             moveable: false,
-            writing: WARNING_LINES.slice(0, 5).join("<br />"),
+            writing: WARNING_LINES.slice(0, 5).join("\n"),
             sense: {
                 see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away. You recognize some of an ancient language.",
                 touch: "It is cold and smooth",
@@ -150,7 +171,7 @@ const PERMANENT = {
                     "In the margin next to this line, three words have been shallowly scratched into the stone."
             },
             rosetta: "not place honor",
-            writing: INFOCENTER_PANEL1.join("<br />")
+            writing: INFOCENTER_PANEL1.join("\n")
         },
         berm1: {
             aliases: ["berm", "slope", "earth", "grass"],
@@ -241,8 +262,10 @@ class Player {
         // Knowledge is a set of known words.
         // We don't (yet) keep a full translation table, in either direction;
         // we just obfuscate unknown words.
+        // We also keep "\n" here so we can preserve newlines in the input >.>
         this.knowledge =
-            saved?.player?.knowledge ?? new Set(["place", "honor"]);
+            saved?.player?.knowledge ?? new Set(["place", "honor",
+                "\n"]);
     }
 }
 
@@ -272,9 +295,9 @@ class State {
 
         const form = document.createElement("form");
         form.classList.add("action");
-        form.addEventListener("submit", (ev) => {
+        form.addEventListener("submit", async (ev) => {
             ev.preventDefault();
-            this.act();
+            await this.act();
         });
         main.appendChild(form);
 
@@ -345,7 +368,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         return this.rooms[this.player.location];
     }
 
-    act() {
+    async act() {
         this.applyDose();
         const tokenizedAction = this.textin.value.split(" ");
         const verb = tokenizedAction[0].toLowerCase();
@@ -356,7 +379,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         if (MOVE_VERBS.includes(verb)) {
             error = this.movePlayer(restString);
         } else if (perceptionVerb) {
-            error = this.inspect(perceptionVerb, restString);
+            error = await this.inspect(perceptionVerb, restString);
         } else if (!verb) {
             // Empty "enter"; clear the most-recent-output,
             // to go back to the room description.
@@ -377,7 +400,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         return `Cannot move to ${direction}`;
     }
 
-    inspect(verb, remainder) {
+    async inspect(verb, remainder) {
         let itemName = remainder.trim().toLowerCase();
         if (!itemName.trim()) {
             this.currentDescription = this.renderPassiveSense(verb);
@@ -392,15 +415,17 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 // If this verb allows perceiving writing,
                 // and we have writing, output it.
                 if (["see"].includes(verb) && item.writing) {
+                    let hidden = await hideText(item.writing, this.player.knowledge);
+                    hidden = hidden.replace(/(?:\r\n|\r|\n)/g, "<br />");
                     this.currentDescription += `<br/>
 The text reads:
-<blockquote>${hideText(item.writing, this.player.knowledge)}</blockquote>
+<blockquote>${hidden}</blockquote>
 `;
                 }
 
 
                 if (["see"].includes(verb) && item.rosetta) {
-                    let hidden = hideText(item.rosetta, new Set());
+                    let hidden = await hideText(item.rosetta, new Set());
                     let unhidden = item.rosetta;
                     this.currentDescription += `<br />
 You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
