@@ -18,7 +18,6 @@ const DEFAULT_ITEM_SENSES = {
 
 const START_LOCATION = "outside";
 const MOVE_VERBS = ["go", "exit", "move"];
-const CARDINAL_DIRECTIONS = ["north", "south", "east", "west"];
 const DAMAGE_LEVELS = [
     { symptoms: [], nextThreshold: 100 },
     { symptoms: ["You cough."], nextThreshold: 200, },
