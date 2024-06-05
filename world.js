@@ -78,7 +78,7 @@ export const PERMANENT = {
             },
         },
         info_text_1: {
-            aliases: ["first panel", "panels", "writing", "damaged panel", "altered panel"],
+            aliases: ["first panel", "panels", "panel", "writing", "damaged panel", "altered panel"],
             moveable: false,
             location: "information center",
             passive: {
@@ -119,6 +119,19 @@ export const PERMANENT = {
                 see: "a slope of earth rising above your head to the west",
             },
         },
+        hot_cell_hole: {
+            aliases: ["door", "hole"],
+            moveable: false,
+            location: "information center",
+            passive: {
+                "see": "a person-sized hole in the ground near one wall",
+                "touch": "a deep and wide hole in the ground near one wall",
+            },
+            sense: {
+                "see": "The hole extends down half your height, then parallel to the wall. You could crawl through it.",
+                "touch": "The hole extends down the length of your leg, then parallel to the wall. You could crawl through it.",
+            }
+        }
     },
     rooms: {
         outside: {
@@ -130,27 +143,50 @@ export const PERMANENT = {
             // Rads per second
             rad_rate: 0,
             senses: {},
-            drone_volume: -4,
+            drone_volume: -13,
         },
         "information center": {
             exits: {
                 east: "outside",
                 outside: "outside",
-                west: "hot cell",
-                door: "hot cell",
+                hole: "hc-tunnel",
+                "through the hole": "hc-tunnel",
+                "into the hole": "hc-tunnel",
+                "into hole": "hc-tunnel",
+                "into the hole": "hc-tunnel",
             },
-            rad_rate: 0.1,
+            rad_rate: 0.01,
             senses: {
                 "see": "four stone walls without a roof in a rectangle, with their tops at the edge of your reach",
                 "touch": "four stone walls without a roof in a rectangle, with their tops at the edge of your reach"
             },
-            drone_volume: 0,
+            drone_volume: -13,
+        },
+        "hc-tunnel": {
+            exits: {
+                "towards the wind": "information center",
+                "towards the sound": "information center",
+                "to the sound": "information center",
+                "from the wind": "hot cell",
+                "away from the wind": "hot cell",
+                "down": "hot cell",
+                "up": "information center"
+            },
+            rad_rate: 0.05,
+            senses: {
+                "touch": "walls around you, the tunnel before and behind you, sloping gently downwards",
+                "hear": "wind from one end of the tunnel",
+            },
+            drone_volume: -10
         },
         "hot cell": {
             exits: { east: "information center" },
-            rad_rate: 10,
-            senses: {},
-            drone_volume: 8
+            rad_rate: 1,
+            senses: {
+                // TODO: Dark at first, have to find a light switch?
+                "see": "dim shafts of light from above, illuminating a buried chamber"
+            },
+            drone_volume: -10
         },
         home: {
             exits: {
