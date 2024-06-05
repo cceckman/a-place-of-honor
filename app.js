@@ -127,6 +127,8 @@ class Room {
 
         this.exits = static_room.exits;
 
+        this.drone_volume = static_room.drone_volume;
+
         this.items = {}; // ID to description
         if (saved !== null && saved !== undefined) {
             for (const [itemid, item] of saved?.items?.entries) {
@@ -171,6 +173,7 @@ class State {
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
+        console.log(this.rooms)
         this.player = new Player(saved);
 
         const loading = document.getElementById("loading-indicator");
@@ -315,6 +318,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         if (destination) {
             this.player.location = destination;
             this.currentDescription = this.renderPassiveSenses();
+            this.music.setDroneVolume(this.currentRoom().drone_volume);
             return "";
         }
         return `Cannot move to ${direction}`;
@@ -404,6 +408,7 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             DAMAGE_LEVELS[this.player.currentDamageLevel].nextThreshold
         ) {
             this.player.currentDamageLevel = this.player.currentDamageLevel + 1;
+            this.music.increaseDetune();
         }
 
         // if there aren't any more damage levels above the current one
