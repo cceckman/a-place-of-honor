@@ -464,17 +464,15 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             this.player.currentDamageLevel = this.player.currentDamageLevel + 1;
             this.music.increaseDetune();
 
-            // Add a symptom for each level up to the current one.
-            for (let level = 0; level < this.player.currentDamageLevel; level += 1) {
-                let availableSymptoms =
-                    DAMAGE_LEVELS[level]?.symptoms ?? [];
-                if (availableSymptoms.length) {
-                    let selectedSymptomIndex = Math.floor(
-                        Math.random() * availableSymptoms.length
-                    );
-                    let selectedSymptom = availableSymptoms[selectedSymptomIndex];
-                    this.player.symptoms.add(selectedSymptom);
-                }
+            // Add a symptom from the current level.
+            let availableSymptoms =
+                DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
+            if (availableSymptoms.length) {
+                let selectedSymptomIndex = Math.floor(
+                    Math.random() * availableSymptoms.length
+                );
+                let selectedSymptom = availableSymptoms[selectedSymptomIndex];
+                this.player.symptoms.add(selectedSymptom);
             }
 
             // Re-render:
