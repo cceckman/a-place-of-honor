@@ -27,16 +27,54 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *          so they should include the item itself.
  *      location: roomId where this item is.
  *          TODO: Or something other than a room ID?
+ *      action: Additional actions that can be performed on this item. List of objects:
+ *          aliases: List of strings that this action matches.
+ *          callback: function(item, State) to update the state of the game.
+ *          Returns an error string, if there is an error.
+ *      lightLevel: light level emitted by this item. Defaults to 0.
  *
  * rooms: mapping of roomId -> Room
  * Room: mapping of:
- *      exits: mapping of string -> roomId. Can 
+ *      exits: mapping of string -> roomId.
  *      rad_rate: ambient radiation in the room, rads per second.
  *      senses: Sense table.
- *      drone_volume: drone volume adjustment (typically negative, deciBels)
+ *      droneVolume: drone volume adjustment (typically negative, deciBels)
+ *      lightLevel: ambient light level. Mutable, saved; defaults to 0 if unspecified.
  *
  *  Sense table: mapping of sense (canonical) to description.
  */
+
+/// Implementation of the light switch in the hot cell.
+function hotCellLightSwitch(self, state) {
+    console.log("flipping lightswitch")
+    // light to room, on this circuit
+    const MAPPINGS = {
+        "hot cell light": "hot cell",
+    };
+    if (self.state) {
+        // Turn off.
+        self.state = false
+        for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
+            let room = state.rooms[roomId];
+            let item = room.items[itemId];
+            delete room.items[itemId];
+            // Hold on to it in the nowhere:
+            state.rooms["nowhere"].items[itemId] = item;
+        }
+    } else {
+        // Turn on.
+        self.state = true
+        for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
+            // Move it from the nowhere:
+            let item = state.rooms["nowhere"].items[itemId];
+            delete state.rooms["nowhere"].items[itemId];
+            let room = state.rooms[roomId];
+            room.items[itemId] = item;
+        }
+    }
+    state.currentDescription = "The cylinder pivots across its base, and clicks."
+}
+
 
 export const PERMANENT = {
     items: {
@@ -138,7 +176,7 @@ export const PERMANENT = {
         hotcell_hole_marker: {
             aliases: ["disc", "disk", "stone", "marker"],
             moveable: true,
-            location: "hc-tunnel",
+            location: "hot cell tunnel",
             /*
             TODO: "Several alternative materials have been suggested for use as Small Subsurface
             Markers including granite, quartz, aluminum, titanium, stainless steel, hastealloy,
@@ -163,15 +201,62 @@ export const PERMANENT = {
             location: "hot cell",
             passive: {
                 "see": "a person-sized hole in one wall",
-                "touch": "a person-sized hole one wall",
+                "touch": "a person-sized hole in one wall",
             },
             sense: {
                 "see": "The hole is the size of a crawling person. It tracks a gentle upward slope.",
                 "touch": "The hole is the size of a crawling person. It tracks a gentle upward slope.",
             }
+        },
+        hotcell_switch: {
+            aliases: ["cylinder", "switch", "button"],
+            moveable: false,
+            location: "hot cell",
+            passive: {
+                "see": "a raised cylinder, smaller than your finger, protruding from the wall near the hole",
+                "touch": "a raised cylinder, smaller than your finger, protruding from the wall near the hole",
+            },
+            sense: {
+                "see": "A raised cylinder, about the size of your last pinky joint. It is made of an unfamiliar, shiny material.",
+                "touch": "A raised cylinder, about the size of your last pinky joint. It is made of an unfamiliar material, not quite metal: smooth, hard, and neither warm nor cold. It seems to shift slightly, vertically, as you touch it.",
+                "taste": "A raised cylinder, about the size of your last pinky joint. It is made of an unfamiliar material, bitter-tasting.",
+            },
+            action: [
+                {
+                    aliases: ["push", "flip", "activate", "toggle"],
+                    callback: hotCellLightSwitch,
+                }
+            ]
+        },
+        "hot cell light": {
+            aliases: ["light", "ceiling", "whine"],
+            moveable: false,
+            location: "nowhere",
+            passive: {
+                "see": "a clear fist-sized globe, glowing yellow, out of reach, in center of the ceiling",
+                "hear": "a faint whine coming from the center of the ceiling",
+            },
+            sense: {
+                "see": "A clear fist-sized globe of an unfamiliar material. It gives off a yellow light, enough that you can make out the rest of the room clearly. It is attached to the center of the ceiling, well out of reach.",
+                "hear": "A faint high-pitched whine eminates from the center of the ceiling, high above your head."
+            },
+            lightLevel: 1,
         }
     },
     rooms: {
+        nowhere: {
+            // Placeholder place for items that don't otherwise have a location.
+            rad_rate: Infinity,
+            exits: {},
+            senses: {
+                "see": "You should't be here.",
+                "hear": "You should't be here.",
+                "smell": "You should't be here.",
+                "touch": "You should't be here.",
+                "taste": "You should't be here."
+            },
+            droneVolume: 10
+        },
         outside: {
             exits: {
                 west: "information center",
@@ -181,26 +266,29 @@ export const PERMANENT = {
             // Rads per second
             rad_rate: 0,
             senses: {},
-            drone_volume: -13,
+            droneVolume: -13,
+            lightLevel: 1,
         },
         "information center": {
             exits: {
                 east: "outside",
                 outside: "outside",
-                hole: "hc-tunnel",
-                "through the hole": "hc-tunnel",
-                "into the hole": "hc-tunnel",
-                "into hole": "hc-tunnel",
-                "into the hole": "hc-tunnel",
+                hole: "hot cell tunnel",
+                down: "hot cell tunnel",
+                "through the hole": "hot cell tunnel",
+                "into the hole": "hot cell tunnel",
+                "into hole": "hot cell tunnel",
+                "into the hole": "hot cell tunnel",
             },
             rad_rate: 0.01,
             senses: {
                 "see": "four stone walls without a roof in a rectangle, with their tops at the edge of your reach",
                 "touch": "four stone walls without a roof in a rectangle, with their tops at the edge of your reach"
             },
-            drone_volume: -13,
+            droneVolume: -13,
+            lightLevel: 1,
         },
-        "hc-tunnel": {
+        "hot cell tunnel": {
             exits: {
                 "towards the wind": "information center",
                 "towards the sound": "information center",
@@ -214,22 +302,25 @@ export const PERMANENT = {
             senses: {
                 "touch": "walls around you, the tunnel before and behind you, sloping gently downwards",
                 "hear": "wind from the upper end of the tunnel",
+                "smell": "earth",
             },
-            drone_volume: -10
+            droneVolume: -10
         },
         "hot cell": {
             exits: {
-                "through the hole": "hc-tunnel",
-                "into the hole": "hc-tunnel",
-                "into hole": "hc-tunnel",
-                "into the hole": "hc-tunnel",
+                hole: "hot cell tunnel",
+                "through the hole": "hot cell tunnel",
+                "into the hole": "hot cell tunnel",
+                "into hole": "hot cell tunnel",
+                "into the hole": "hot cell tunnel",
             },
             rad_rate: 0.5,
             senses: {
                 // TODO: Dark at first, have to find a light switch?
-                "see": "dim shafts of light from above, illuminating a buried chamber"
+                "touch": "the air circulating through an open chamber",
+                "smell": "something not quite earthen"
             },
-            drone_volume: -10
+            droneVolume: -10
         },
         home: {
             exits: {
@@ -244,7 +335,8 @@ export const PERMANENT = {
                 smell: "hundreds of bodies in close proximity",
                 taste: "your own sweat on your lips"
             },
-            drone_volume: -Infinity
+            droneVolume: -Infinity,
+            lightLevel: 1,
         }
     }
 };
