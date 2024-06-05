@@ -18,7 +18,7 @@ const DEFAULT_ITEM_SENSES = {
 
 const START_LOCATION = "home";
 const MOVE_VERBS = ["go", "exit", "move"];
-const RESTART_VERBS = ["restart", "continue"];
+const RESTART_VERBS = ["restart", "continue", "yes"];
 const DAMAGE_LEVELS = [
     { symptoms: [], nextThreshold: 100 },
     { symptoms: ["You cough."], nextThreshold: 200 },
@@ -63,9 +63,9 @@ const INSPECTIONS = {
     touch: ["feel"],
 };
 
-const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops</div>
+const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
 
-<div>Return to the place of honor as a new investigator? ("restart")</div>`;
+<div>Return to the place of honor as a new investigator?<br />("restart")</div>`;
 
 function canonicalizeSense(verb) {
     const lower = verb.toLowerCase();
@@ -243,6 +243,7 @@ class State {
 
         main.appendChild(this.music.musicToggle);
 
+        this.lastError = ""
         this.render();
     }
 
@@ -254,7 +255,7 @@ class State {
         this.music.restartArpeggio();
     }
 
-    render(error = "") {
+    render() {
         console.log(this);
 
         // TODO - if player is null that means they died
@@ -275,8 +276,9 @@ class State {
         }
         this.perception.innerHTML = this.currentDescription;
 
-        this.errors.innerText = error;
-        if (!error) {
+        this.errors.innerText = this.lastError;
+        if (this.lastError === "") {
+            // No error in the last input; clear it.
             this.textin.value = "";
         }
 
@@ -298,7 +300,15 @@ class State {
         if (senses.length === 0) {
             return DEFAULT_ROOM_SENSES[sense];
         }
-        return `You ${sense} ${senses.join(", ")}.`;
+        let joiner = ", ";
+        for (const sense of senses) {
+            if (sense.includes(",")) {
+                joiner = "; "
+                break;
+            }
+        }
+
+        return `You ${sense} ${senses.join(joiner)}.`;
     }
     renderPassiveSenses() {
         return `
@@ -320,33 +330,35 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         const tokenizedAction = this.textin.value.split(" ");
         const verb = tokenizedAction[0].toLowerCase();
         const restString = tokenizedAction.slice(1).join(" ");
-        let error = `I don't know ${verb}`;
 
         // TODO - if player is null only allow the "restart" action (or "continue", or whatever we call it)
         if (this.player === null) {
             if (RESTART_VERBS.includes(verb)) {
                 this.newInvestigator()
-                error = "";
+                this.lastError = "";
             } else {
-                error = `I can't ${verb}. I am dead.`;
+                this.lastError = `I can't ${verb}. I am dead.`;
             }
         } else {
             // i.e. player is alive
             // const restArray = tokenizedAction.slice(1);
             const perceptionVerb = canonicalizeSense(verb);
             if (MOVE_VERBS.includes(verb)) {
-                error = this.movePlayer(restString);
+                this.lastError = this.movePlayer(restString);
             } else if (perceptionVerb) {
-                error = await this.inspect(perceptionVerb, restString);
-            } else if (!verb) {
+                this.lastError = await this.inspect(perceptionVerb, restString);
+            } else if (verb) {
+                // Unknown action.
+                this.lastError = `I don't know ${verb}`;
+            } else {
                 // Empty "enter"; clear the most-recent-output,
                 // to go back to the room description.
                 this.currentDescription = "";
-                error = "";
+                this.lastError = "";
             }
         }
         this.applyDose();
-        this.render(error);
+        this.render();
     }
 
     movePlayer(direction) {
@@ -451,6 +463,20 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         ) {
             this.player.currentDamageLevel = this.player.currentDamageLevel + 1;
             this.music.increaseDetune();
+
+            // Add a symptom from the current level.
+            let availableSymptoms =
+                DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
+            if (availableSymptoms.length) {
+                let selectedSymptomIndex = Math.floor(
+                    Math.random() * availableSymptoms.length
+                );
+                let selectedSymptom = availableSymptoms[selectedSymptomIndex];
+                this.player.symptoms.add(selectedSymptom);
+            }
+
+            // Re-render:
+            this.render()
         }
 
         // if there aren't any more damage levels above the current one
@@ -461,15 +487,6 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         }
 
         // select a symptom for the player based on their dosage
-        let availableSymptoms =
-            DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
-        if (availableSymptoms.length) {
-            let selectedSymptomIndex = Math.floor(
-                Math.random() * availableSymptoms.length
-            );
-            let selectedSymptom = availableSymptoms[selectedSymptomIndex];
-            this.player.symptoms.add(selectedSymptom);
-        }
 
         // TODO: compute time until next threshhold at current player.dosage
         // set dosage callback and store timer on state
