@@ -20,11 +20,39 @@ const START_LOCATION = "outside";
 const MOVE_VERBS = ["go", "exit", "move"];
 const RESTART_VERBS = ["restart", "continue"];
 const DAMAGE_LEVELS = [
-    { symptoms: [], nextThreshold: 1 },
-    { symptoms: ["You cough."], nextThreshold: 2 },
-    { symptoms: ["You feel so thirsty."], nextThreshold: 3 },
-    { symptoms: ["You cough. You "], nextThreshold: 4 },
-    { symptoms: ["You pass out."], nextThreshold: Infinity },
+    { symptoms: [], nextThreshold: 100 },
+    { symptoms: ["You cough."], nextThreshold: 200 },
+    { symptoms: ["You feel so thirsty."], nextThreshold: 350 },
+    { symptoms: ["Your head aches."], nextThreshold: 500 },
+    {
+        symptoms: [
+            "You cough. You taste blood.",
+            "Your stomach turns. You taste acid.",
+            "You turn. Which way did you come from? Which is the way ahead?"
+        ], nextThreshold: 1000
+    },
+    {
+        symptoms: [
+            "Your stomach turns. Vomit wells in your mouth.",
+            "Your legs falter. You slip, then recover."
+        ], nextThreshold: 5000
+    },
+    {
+        symptoms: [
+            "You collapse. You stay still for a moment, then struggle to rise.",
+            "You cough. Blood trickles from your mouth.",
+            "You spit, but you still taste blood.",
+            "Your senses fade in and out. Where are you? Where have you been?"
+        ], nextThreshold: 10000
+    },
+    {
+        symptoms: [
+            "You collapse. You stay still for a moment, then struggle to rise.",
+            "You cough. Blood trickles from your mouth.",
+            "You close your eyes for a moment. You struggle to open them again."
+        ], nextThreshold: 10000
+    },
+    { symptoms: [/*At the last threshold, there is only one symptom.*/], nextThreshold: Infinity },
 ];
 
 const INSPECTIONS = {
@@ -225,7 +253,7 @@ class State {
         } else {
             const selectedSymptom =
                 Array.from(this.player.symptoms)[
-                    Math.floor(Math.random() * this.player.symptoms.size)
+                Math.floor(Math.random() * this.player.symptoms.size)
                 ] ?? "";
             this.symptoms.innerText = selectedSymptom;
         }
@@ -263,10 +291,10 @@ class State {
     renderPassiveSenses() {
         return `
 ${Object.keys(DEFAULT_ROOM_SENSES)
-    .map((sense) => {
-        return this.renderPassiveSense(sense);
-    })
-    .join("<br />")}
+                .map((sense) => {
+                    return this.renderPassiveSense(sense);
+                })
+                .join("<br />")}
 `;
     }
 
