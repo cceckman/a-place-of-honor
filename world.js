@@ -218,8 +218,13 @@ export const PERMANENT = {
             drone_volume: -10
         },
         "hot cell": {
-            exits: { east: "information center" },
-            rad_rate: 1,
+            exits: {
+                "through the hole": "hc-tunnel",
+                "into the hole": "hc-tunnel",
+                "into hole": "hc-tunnel",
+                "into the hole": "hc-tunnel",
+            },
+            rad_rate: 0.5,
             senses: {
                 // TODO: Dark at first, have to find a light switch?
                 "see": "dim shafts of light from above, illuminating a buried chamber"
@@ -231,7 +236,6 @@ export const PERMANENT = {
                 west: "outside",
                 "to the place of honor": "outside",
             },
-            // Rads per second
             rad_rate: 0,
             senses: {
                 see: "your community looking at you",
