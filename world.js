@@ -128,7 +128,7 @@ export const PERMANENT = {
             location: "information center",
             passive: {
                 "see": "a person-sized hole in the ground near one wall",
-                "touch": "a deep and wide hole in the ground near one wall",
+                "touch": "a person-sized hole in the ground near one wall",
             },
             sense: {
                 "see": "The hole extends down half your height, then parallel to the wall. You could crawl through it.",
@@ -139,6 +139,14 @@ export const PERMANENT = {
             aliases: ["disc", "disk", "stone", "marker"],
             moveable: true,
             location: "hc-tunnel",
+            /*
+            TODO: "Several alternative materials have been suggested for use as Small Subsurface
+            Markers including granite, quartz, aluminum, titanium, stainless steel, hastealloy,
+            inconel, ceramics, glass (lanthanumborate made by the Corning Glass
+            Company), and highly durable plastics (polyethylene).
+            ...
+             it is likely that rock and metal can be eliminated from the candidate list due to cost"
+            */
             passive: {
                 "touch": "a hard and smooth disc, head-sized, loose on the ground"
             },
@@ -155,7 +163,7 @@ export const PERMANENT = {
             location: "hot cell",
             passive: {
                 "see": "a person-sized hole in one wall",
-                "touch": "a deep and wide hole one wall",
+                "touch": "a person-sized hole one wall",
             },
             sense: {
                 "see": "The hole is the size of a crawling person. It tracks a gentle upward slope.",
