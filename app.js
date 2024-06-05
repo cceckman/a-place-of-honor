@@ -196,13 +196,14 @@ class Player {
 
 class State {
     constructor(permanent, saved) {
+        // Set up game state:
         this.music = new Music();
         this.rooms = {};
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
+        this.newInvestigator(saved)
         console.log(this.rooms)
-        this.player = new Player(saved);
 
         const loading = document.getElementById("loading-indicator");
         loading.remove();
@@ -243,6 +244,14 @@ class State {
         main.appendChild(this.music.musicToggle);
 
         this.render();
+    }
+
+    newInvestigator(saved) {
+        this.player = new Player(saved)
+        this.currentDescription = "";
+
+        this.music.setDroneVolume(this.currentRoom().drone_volume)
+        this.music.restartArpeggio();
     }
 
     render(error = "") {
@@ -316,10 +325,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         // TODO - if player is null only allow the "restart" action (or "continue", or whatever we call it)
         if (this.player === null) {
             if (RESTART_VERBS.includes(verb)) {
-                this.player = new Player();
-                this.currentDescription = "";
+                this.newInvestigator()
                 error = "";
-                this.music.restartArpeggio();
             } else {
                 error = `I can't ${verb}. I am dead.`;
             }
