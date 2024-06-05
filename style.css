@@ -101,3 +101,7 @@ blockquote {
 
     padding: calc(2 * var(--curve));
 }
+
+.margin-top {
+    margin-top: 0.25rem;
+}
