@@ -18,7 +18,7 @@ const DEFAULT_ITEM_SENSES = {
 
 const START_LOCATION = "home";
 const MOVE_VERBS = ["go", "exit", "move"];
-const RESTART_VERBS = ["restart", "continue"];
+const RESTART_VERBS = ["restart", "continue", "yes"];
 const DAMAGE_LEVELS = [
     { symptoms: [], nextThreshold: 100 },
     { symptoms: ["You cough."], nextThreshold: 200 },
@@ -63,9 +63,9 @@ const INSPECTIONS = {
     touch: ["feel"],
 };
 
-const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops</div>
+const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
 
-<div>Return to the place of honor as a new investigator? ("restart")</div>`;
+<div>Return to the place of honor as a new investigator?<br />("restart")</div>`;
 
 function canonicalizeSense(verb) {
     const lower = verb.toLowerCase();
@@ -298,7 +298,15 @@ class State {
         if (senses.length === 0) {
             return DEFAULT_ROOM_SENSES[sense];
         }
-        return `You ${sense} ${senses.join(", ")}.`;
+        let joiner = ", ";
+        for (const sense of senses) {
+            if (sense.includes(",")) {
+                joiner = "; "
+                break;
+            }
+        }
+
+        return `You ${sense} ${senses.join(joiner)}.`;
     }
     renderPassiveSenses() {
         return `

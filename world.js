@@ -21,7 +21,10 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *      writing: Text to display as writing on this panel.
  *      rosetta: (String of) Text that is translated on this panel. Percieving the panel may add these to knowledge.
  *      passive: Sense table, presented passively (i.e. when just looking at the room / container.)
+ *          These should be sentence fragments -- they fit into the list.
  *      sense: Sense table, presented actively (i.e. when specifically looking at this item)
+ *          These should be complete paragraphs -- they are presented on their own,
+ *          so they should include the item itself.
  *      location: roomId where this item is.
  *          TODO: Or something other than a room ID?
  *
@@ -69,7 +72,7 @@ export const PERMANENT = {
             writing: WARNING_LINES.slice(0, 5).join("\n"),
             sense: {
                 see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away.",
-                touch: "It is cold and smooth",
+                touch: "The monolith is cold and smooth.",
                 taste: "Stony and mineral-like.",
             },
             location: "outside",
@@ -119,7 +122,7 @@ export const PERMANENT = {
                 see: "a slope of earth rising above your head to the west",
             },
         },
-        hot_cell_hole: {
+        infocenter_hotcell_hole: {
             aliases: ["door", "hole"],
             moveable: false,
             location: "information center",
@@ -130,6 +133,33 @@ export const PERMANENT = {
             sense: {
                 "see": "The hole extends down half your height, then parallel to the wall. You could crawl through it.",
                 "touch": "The hole extends down the length of your leg, then parallel to the wall. You could crawl through it.",
+            }
+        },
+        hotcell_hole_marker: {
+            aliases: ["disc", "disk", "stone", "marker"],
+            moveable: true,
+            location: "hc-tunnel",
+            passive: {
+                "touch": "a hard and smooth disc, head-sized, loose on the ground"
+            },
+            sense: {
+                "touch": "A hard and smooth disc, head-sized, with symbols engraved on it. It is hard, and smoother than stone. The engraving is finer, shallow and narrow, but clear. It is cold.",
+                "see": "The disc has more ancient text on it, as well as some unfamiliar symbols, larger than the letters.",
+                "hear": "The disc makes a clinking sound when tapped.",
+            },
+            writing: "danger -- poisonous radioactive waste here -- do not dig or drill"
+        },
+        hotcell_infocenter_hole: {
+            aliases: ["door", "hole"],
+            moveable: false,
+            location: "hot cell",
+            passive: {
+                "see": "a person-sized hole in one wall",
+                "touch": "a deep and wide hole one wall",
+            },
+            sense: {
+                "see": "The hole is the size of a crawling person. It tracks a gentle upward slope.",
+                "touch": "The hole is the size of a crawling person. It tracks a gentle upward slope.",
             }
         }
     },
@@ -175,7 +205,7 @@ export const PERMANENT = {
             rad_rate: 0.05,
             senses: {
                 "touch": "walls around you, the tunnel before and behind you, sloping gently downwards",
-                "hear": "wind from one end of the tunnel",
+                "hear": "wind from the upper end of the tunnel",
             },
             drone_volume: -10
         },
