@@ -1,6 +1,11 @@
+import Music from "./music.js";
+
 // Defaults for items:
 const NOSOUND_ITEM = "It makes no sound.";
 const NOSMELL_ITEM = "It has no distinct smell.";
+
+const music = new Music();
+music.playArpeggio();
 
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
@@ -271,6 +276,7 @@ class Player {
 
 class State {
     constructor(permanent, saved) {
+        this.music = new Music()
         this.rooms = {};
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
@@ -312,6 +318,8 @@ class State {
         this.button.type = "submit";
         this.button.innerText = "Act.";
         form.appendChild(this.button);
+
+        main.appendChild(this.music.musicToggle);
 
         this.render();
     }
