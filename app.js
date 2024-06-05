@@ -16,7 +16,7 @@ const DEFAULT_ITEM_SENSES = {
     taste: "It has no distinct taste.",
 };
 
-const START_LOCATION = "outside";
+const START_LOCATION = "home";
 const MOVE_VERBS = ["go", "exit", "move"];
 const RESTART_VERBS = ["restart", "continue"];
 const DAMAGE_LEVELS = [
@@ -190,7 +190,7 @@ class Player {
         // we just obfuscate unknown words.
         // We also keep "\n" here so we can preserve newlines in the input >.>
         this.knowledge =
-            saved?.player?.knowledge ?? new Set(["place", "honor", "\n"]);
+            saved?.player?.knowledge ?? new Set([]);
     }
 }
 
@@ -382,13 +382,14 @@ The text reads:
 `;
                 }
 
-                if (["see"].includes(verb) && item.rosetta) {
+                if (["see"].includes(verb) && item.rosetta && this.learn(item.rosetta)) {
                     let hidden = await hideText(item.rosetta, new Set());
                     let unhidden = item.rosetta;
+
                     this.currentDescription += `<br />
 You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
 `;
-                    this.learn(item.rosetta);
+
                 }
 
                 // No error:
@@ -398,12 +399,16 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         return `There is no ${itemName} nearby.`;
     }
 
+    // Returns true if something new was learned.
     learn(text) {
+        const knownBefore = this.player.knowledge.size;
         for (const { isWord, word } of getWords(text)) {
             if (isWord) {
                 this.player.knowledge.add(word.toLowerCase());
             }
         }
+        // Return "true" if something was learned:
+        return this.player.knowledge.size != knownBefore
     }
 
     killPlayer() {
