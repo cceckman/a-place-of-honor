@@ -470,4 +470,6 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
     }
 }
 
-const state = new State(PERMANENT, /*saved = */ undefined);
+// Attach to the window object for debugging:
+window.gameState = new State(PERMANENT, /*saved = */ undefined);
+
