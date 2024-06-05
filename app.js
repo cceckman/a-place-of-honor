@@ -30,7 +30,7 @@ const DAMAGE_THRESHOLDS = {
 };
 
 const INSPECTIONS = {
-    "see": ["look"],
+    "see": ["look", "read"],
     "hear": ["listen"],
     "smell": ["sniff", "inhale"],
     "taste": ["lick"],
@@ -47,19 +47,76 @@ function canonicalizeSense(verb) {
     return null;
 }
 
-/// Obfuscate text, according to the current knowledge.
-function trashText(original, _knowledge) {
-    return original;
+function hideWord(original) {
+    return original.toUpperCase();
 }
+
+// Iterator over words and non-word items.
+// Yields either:
+// {isWord: true, word: "..."}
+// {isWord: false, word: "..."}
+function* getWords(original) {
+    let buffer = "";
+    for (const character of original) {
+        // Charles can't figure out how to do Unicode properly,
+        // so we're just going to do this to detect "letters":
+        if (character.match(/[a-zA-Z]/)) {
+            buffer += character
+        } else {
+            // End-of-word.
+            if (buffer.length != 0) {
+                yield { isWord: true, word: buffer };
+                buffer = "";
+            }
+            yield { isWord: false, word: character };
+        }
+    }
+    if (buffer.length != 0) {
+        yield { isWord: true, word: buffer };
+    }
+}
+
+/// Obfuscate text, according to the current knowledge.
+function hideText(original, knowledge) {
+    // Try to preserve blank spaces and punctuation;
+    // "just" get words.
+    let output = "";
+    for (const { isWord, word } of getWords(original)) {
+        if (!isWord) {
+            output += word;
+        } else if (knowledge.has(word.toLowerCase())) {
+            output += word;
+        } else {
+            output += hideWord(word);
+        }
+
+    }
+    return output;
+}
+
+const WARNING_LINES = [
+    "This place is a message... and part of a system of messages... pay attention to it!",
+    "Sending this message was important to us. We considered ourselves to be a powerful culture.",
+    "This place is not a place of honor... no highly esteemed deed is commemorated here... nothing valued is here.",
+    "What is here was dangerous and repulsive to us. This message is a warning about danger.",
+    "The danger is in a particular location... it increases towards a center... the center of danger is here... of a particular size and shape, and below us.",
+    "The danger is still present, in your time, as it was in ours.",
+    "The danger is to the body, and it can kill.",
+    "The form of the danger is an emanation of energy.",
+    "The danger is unleashed only if you substantially disturb this place physically. This place is best shunned and left uninhabited."
+];
+
+const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor", ...WARNING_LINES.slice(3)];
+
 
 const PERMANENT = {
     items: {
         monolith1: {
             aliases: ["monolith", "stone", "gray stone monolith"],
             moveable: false,
-            writing: "not a place of honor",
+            writing: WARNING_LINES.slice(0, 5).join("<br />"),
             sense: {
-                see: "A gray stone monolith, twice your height, with writing on it.",
+                see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away. You recognize some of an ancient language.",
                 touch: "It is cold and smooth",
                 taste: "Stony and mineral-like.",
             },
@@ -68,19 +125,46 @@ const PERMANENT = {
                 see: "a gray stone monolith",
             },
         },
+        info_text_2: {
+            aliases: ["first panel", "second panel", "other panels", "panels"],
+            moveable: false,
+            location: "information center",
+            passive: {
+                see: "two stone panels with text",
+            },
+            sense: {
+                see: "A stone panel with some sort of engraving on it. It might be writing, but you do not recognize the characters.",
+            }
+        },
+        info_text_1: {
+            aliases: ["last panel", "third panel", "writing", "damaged panel", "altered panel"],
+            moveable: false,
+            location: "information center",
+            passive: {
+                see: "a stone panel with damaged or altered text",
+            },
+            sense: {
+                see:
+                    "The panel has engraved writing similar to that on the gray monolith. " +
+                    "On one of the lines, all of the words but three have been chisiled away. " +
+                    "In the margin next to this line, three words have been shallowly scratched into the stone."
+            },
+            rosetta: "not place honor",
+            writing: INFOCENTER_PANEL1.join("<br />")
+        },
         berm1: {
-            aliases: ["berm", "slope", "earth"],
+            aliases: ["berm", "slope", "earth", "grass"],
             moveable: false,
             sense: {
-                "see": "To the west is a berm, a slope of grass-covered earth rising above your head. It seems to be level beyond that point. It extends thousands of strides to the north and south.",
-                "hear": "It is covered in grass, which rustles softly in the gentle breeze.",
+                "see": "To the west is a berm, a gradual slope of grass-covered earth that rises above your head then levels off. You could climb it. It extends thousands of strides to the north and south.",
+                "hear": "The berm is covered in grass, which rustles softly in the gentle breeze.",
                 "touch": "The ground is grass-covered, but not soft; it feels well-packed.",
-                "smell": "It has a slight smell of grass and earth, but not of loam.",
-                "taste": "It tastes of dirt, low in clay."
+                "smell": "The ground has a slight smell of grass and earth, but not of loam.",
+                "taste": "The ground is dusty -- low in clay or loam."
             },
             location: "outside",
             passive: {
-                see: "a slope of earth rising above your head",
+                see: "a slope of earth rising above your head to the west",
             },
         },
     },
@@ -103,7 +187,8 @@ const PERMANENT = {
                 door: "hot cell",
             },
             rad_rate: 0.1,
-            senses: {},
+            senses: {
+            },
         },
         "hot cell": {
             exits: { east: "information center" },
@@ -214,7 +299,7 @@ class State {
         if (!this.currentDescription) {
             this.currentDescription = this.renderPassiveSenses();
         }
-        this.perception.innerText = this.currentDescription;
+        this.perception.innerHTML = this.currentDescription;
 
         const selectedSymptom =
             Array.from(this.player.symptoms)[
@@ -226,9 +311,7 @@ class State {
             this.textin.value = "";
         }
 
-        // TODO: Trash text
-        // TODO Display items
-        // TODO include
+        // TODO include (???)
     }
 
     renderPassiveSense(sense) {
@@ -254,7 +337,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 .map((sense) => {
                     return this.renderPassiveSense(sense);
                 })
-                .join("\n")}
+                .join("<br />")}
 `
     }
 
@@ -263,9 +346,6 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
     }
 
     act() {
-        // TODO: Parse user input and change the current state, then...
-        //
-        //
         this.applyDose();
         const tokenizedAction = this.textin.value.split(" ");
         const verb = tokenizedAction[0].toLowerCase();
@@ -309,21 +389,38 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             if (item.aliases.includes(itemName)) {
                 this.currentDescription = item.sense[verb] ?? DEFAULT_ITEM_SENSES[verb];
 
-                // TODO:
-                // If looking (or touching?),
-                // include the writing with translation.
-                // trashText has a stub.
-                /*
-                if (item.writing) {
-                    this.currentDescription += "The text reads: \n" + trashText(item.writin
-                }*/
-                // TODO:
-                // If there is both "writing" and "translation",
-                // print both, and add to the player's knowledge.
+                // If this verb allows perceiving writing,
+                // and we have writing, output it.
+                if (["see"].includes(verb) && item.writing) {
+                    this.currentDescription += `<br/>
+The text reads:
+<blockquote>${hideText(item.writing, this.player.knowledge)}</blockquote>
+`;
+                }
+
+
+                if (["see"].includes(verb) && item.rosetta) {
+                    let hidden = hideText(item.rosetta, new Set());
+                    let unhidden = item.rosetta;
+                    this.currentDescription += `<br />
+You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
+`;
+                    this.learn(item.rosetta);
+                }
+
+                // No error:
                 return "";
             }
         }
         return `There is no ${itemName} nearby.`;
+    }
+
+    learn(text) {
+        for (const { isWord, word } of getWords(text)) {
+            if (isWord) {
+                this.player.knowledge.add(word.toLowerCase());
+            }
+        }
     }
 
     applyDose() {
