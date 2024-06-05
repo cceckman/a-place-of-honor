@@ -80,10 +80,7 @@ export const PERMANENT = {
             },
             // Rads per second
             rad_rate: 0,
-            senses: {
-                "see": "four stone walls without a roof in a rectangle, with their tops just at your reach",
-                "touch": "four stone walls without a roof in a rectangle, with their tops just at your reach"
-            },
+            senses: {},
         },
         "information center": {
             exits: {
@@ -94,6 +91,8 @@ export const PERMANENT = {
             },
             rad_rate: 0.1,
             senses: {
+                "see": "four stone walls without a roof in a rectangle, with their tops just at your reach",
+                "touch": "four stone walls without a roof in a rectangle, with their tops just at your reach"
             },
         },
         "hot cell": {
