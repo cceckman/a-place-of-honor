@@ -2,6 +2,8 @@ import Music from "./music.js";
 import PERMANENT from "./world.js";
 import Telemetry from "./telemetry.js";
 
+const STORAGE_KEY = `APlaceOfHonor-SaveData`;
+
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
     hear: "You hear nothing.",
@@ -157,12 +159,7 @@ async function hideText(original, knowledge) {
     return output;
 }
 
-function getLightLevel(items, base = 0) {
-    return Object.values(items).reduce(
-        (acc, item) => acc + (item.lightLevel ?? 0),
-        base
-    );
-}
+
 
 class Room {
     constructor(roomid, permanent, saved) {
@@ -186,6 +183,20 @@ class Room {
             }).map(([id, _]) => id);
         this.itemIds = new Set(saved_room ? saved_room.itemIds : permanent_ids);
     }
+
+    getLightLevel(items) {
+        return Array.from(this.itemIds).reduce((acc, itemId) => {
+            let item = items[itemId];
+            return acc + (item.lightLevel ?? 0)
+        }, this.lightLevel);
+    }
+
+    save() {
+        return {
+            itemIds: Array.from(this.itemIds),
+            lightLevel: this.lightLevel,
+        }
+    }
 }
 
 class Player {
@@ -206,12 +217,24 @@ class Player {
         // We also keep "\n" here so we can preserve newlines in the input >.>
         this.knowledge = new Set(saved?.player?.knowledge ?? []);
     }
+
+    save() {
+        return {
+            location: this.location,
+            dosage: this.dosage,
+            damage: this.damage,
+            currentDamageLevel: this.currentDamageLevel,
+            symptoms: Array.from(this.symptoms),
+            itemIds: Array.from(this.itemIds),
+            knowledge: Array.from(this.knowledge),
+        }
+    }
 }
 
 class Item {
     constructor(itemid, permanent, saved) {
         const perm = permanent.items[itemid];
-        const save = (saved ? saved[itemid] : {})
+        const save = (saved ? saved.items[itemid] : {})
         // Immutable properties:
         this.aliases = perm.aliases
         this.moveable = perm.moveable
@@ -225,6 +248,13 @@ class Item {
         // Saved properties:
         this.rosetta = save?.rosetta ?? perm.rosetta;
         this.writtenWords = save?.writtenWords ?? "";
+    }
+
+    save() {
+        return {
+            rosetta: this.rosetta,
+            writtenWords: this.writtenWords,
+        }
     }
 
     save() {
@@ -296,9 +326,59 @@ class State {
         this.music.attachControls(controls);
         this.telemetry.attachControls(controls);
 
-        this.lastError = "";
+        let saveControl = document.createElement("button");
+        saveControl.id = "save";
+        saveControl.type = "submit";
+        saveControl.innerText = "Save";
+        saveControl.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            this.save();
+        })
+
+        let clearSaveControl = document.createElement("button");
+        clearSaveControl.id = "clear save";
+        clearSaveControl.type = "submit";
+        clearSaveControl.innerText = "Clear save and restart";
+        clearSaveControl.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            this.handleClearSave(ev);
+        })
+
+        controls.appendChild(saveControl);
+        controls.appendChild(clearSaveControl);
+
+        this.lastError = ""
         this.render();
     }
+
+    // Save progress into the user's browser.
+    save() {
+        this.applyDose();
+        // Serialize what we can:
+        let saveData = {}
+        if (this.player) {
+            saveData.player = this.player.save()
+        }
+        saveData.rooms = {}
+        for (const [roomId, room] of Object.entries(this.rooms)) {
+            saveData.rooms[roomId] = room.save();
+        }
+        saveData.items = {}
+        for (const [itemId, item] of Object.entries(this.items)) {
+            saveData.items[itemId] = item.save();
+        }
+        const saveString = JSON.stringify(saveData);
+        window.localStorage.setItem(STORAGE_KEY, saveString);
+        console.log("saved")
+    }
+
+    // Clear any saved data and reload.
+    handleClearSave() {
+        console.log("Clearing save")
+        window.localStorage.removeItem(STORAGE_KEY);
+        start()
+    }
+
 
     newInvestigator(saved) {
         this.player = new Player(saved);
@@ -696,15 +776,24 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
 }
 
 function start() {
-    // tone.js doesn't like a new controller getting instantiated.
-    // Treat music as a singleton; preserve it if we create a new game state.
+    // tone.js doesn't like a new controller getting instantiated
     let music = undefined;
     if (window.gameState) {
         window.gameState.music?.stopMusic()
         music = window.gameState.music;
     }
 
-    window.gameState = new State(PERMANENT, undefined, music);
+    try {
+        // Attempt to access saved state:
+        let savedString = window.localStorage.getItem(STORAGE_KEY);
+        let saved = savedString ? JSON.parse(savedString) : null;
+        window.gameState = new State(PERMANENT, saved, music);
+    } catch (error) {
+        console.log("Error in recovering saved state: ", error);
+        window.gameState = new State(PERMANENT, null, music);
+        window.gameState.lastError = "Could not recover saved state."
+        window.gameState.render()
+    }
 }
 
 start()

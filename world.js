@@ -100,11 +100,11 @@ export const PERMANENT = {
             },
             location: "home",
             sense: {
-                see: "The leader addresses you, asking a question, and gesture to the carved tablet they hold.",
-                hear: 
-`The leader asks you to go west to the place of honor, and bring back its power to your community.
-The leader motions to the jar of paint strapped to your belt and tells you to mark your knowledge so
- others may learn of the place's honor and power.` 
+                see: "The leader addresses you, asking a question, and gestures to the carved tablet they hold and the jar of paint on your belt.",
+                hear:
+                    `The leader asks you to go west to the place of honor, and bring back its power to your community.
+The leader notes you have a jar of paint strapped to your belt and tells you to mark your knowledge so
+ others may learn of the place's honor and power.`
             }
         },
         leader_tablet: {
