@@ -352,6 +352,7 @@ class State {
         // "active" touch would be walking around and poking things, feeling out the walls;
         // "passive" touch would be airflow, temperature, etc.
         if (sense === "see" && this.getLightLevel() <= 0) {
+            this.music.triggerDarknessChord();
             return `You cannot see.`;
         }
 
@@ -420,6 +421,9 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             const interactionVerb = canonicalizeVerb(verb, INTERACTIONS);
             if (MOVE_VERBS.includes(verb)) {
                 this.lastError = this.movePlayer(restString);
+                if (!this.lastError) {
+                    this.music.triggerMoveChord();
+                }
             } else if (perceptionVerb) {
                 this.lastError = await this.inspect(perceptionVerb, restString);
             } else if (interactionVerb) {
@@ -528,6 +532,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 // Sight special cases:
                 if (this.getLightLevel() <= 0) {
                     this.currentDescription = `You cannot see the ${itemName}.`;
+                    this.music.triggerDarknessChord();
                     return "";
                 }
 

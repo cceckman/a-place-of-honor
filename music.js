@@ -13,6 +13,17 @@ const droneSynth2 = new Tone.Oscillator({
     frequency: 65.4, // 65.4 hz ~= C2
 }).connect(droneVolume);
 const reverb = new Tone.Reverb();
+const chordSynth = new Tone.PolySynth(Tone.MonoSynth).toDestination();
+chordSynth.set({
+    envelope: {
+        attack: 2,
+        attackCurve: "bounce",
+        decay: 3,
+        release: 2,
+        sustain: 0.1
+    },
+    volume: -20
+})
 
 const melodySynth = new Tone.Synth({
     volume: -7,
@@ -40,16 +51,16 @@ const arpeggioNotes = [
     ...arpeggio2Notes,
 ];
 const melodyPart = [
-    ["0:0", "Eb6"],
-    ["0:3", "D6"],
-    ["1:1:2", "Eb6"],
-    ["1:1:3", "D6"],
-    ["1:2", "C6"],
-    ["2:1", "Bb5"],
-    ["2:2", "Ab5"],
-    ["2:3", "G5"],
-    ["2:3:3", "Bb5"],
-    ["3:0:2", "C6"],
+    [{ time: "0:0", note: "Eb6", duration: "2n.", velocity: 1.5 }],
+    [{ time: "0:3", note: "D6", duration: "2n", velocity: 1 }],
+    [{ time: "1:1:2", note: "Eb6", duration: "16n", velocity: 2 }],
+    [{ time: "1:1:3", note: "D6", duration: "16n", velocity: 1.75 }],
+    [{ time: "1:2", note: "C6", duration: "2n.", velocity: 1.5 }],
+    [{ time: "2:1", note: "Bb5", duration: "4n", velocity: 1 }],
+    [{ time: "2:2", note: "Ab5", duration: "4n", velocity: 1 }],
+    [{ time: "2:3", note: "G5", duration: "1t", velocity: 1.5 }],
+    [{ time: "2:3:3", note: "Bb5", duration: "1t", velocity: 1.5 }],
+    [{ time: "3:0:2", note: "C6", duration: "1t", velocity: 2 }]
 ];
 
 const DEFAULT_DETUNE = 10;
@@ -88,11 +99,11 @@ export default class Music {
             this.toggleMusic();
         });
 
-        this.melodysequence = new Tone.Part((time, note) => {
+        this.melodysequence = new Tone.Part((time, { note, duration, velocity}) => {
             melodySynth.set({
                 detune: gaussianRandom() * this.detune,
             });
-            melodySynth.triggerAttackRelease(note, 0.25, time);
+            melodySynth.triggerAttackRelease(note, duration, time, velocity);
         }, melodyPart);
 
         this.sequence = new Tone.Sequence((time, note) => {
@@ -163,4 +174,18 @@ export default class Music {
         droneVolume.set({ volume: volume });
         this.toggleInstruments(["droneSynth1", "droneSynth2"]);
     }
+
+    triggerMoveChord() {
+        if (this.musicOn) {
+            chordSynth.triggerAttackRelease(["F5", "Eb6"], "2m");
+        }
+    }
+
+    triggerDarknessChord() {
+        if (this.musicOn) {
+            chordSynth.triggerAttackRelease(["Bb1", "C2"], "2m", "+16n", 2);
+        }
+    }
+
 }
+
