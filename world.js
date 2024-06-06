@@ -88,7 +88,10 @@ export const PERMANENT = {
             location: "home",
             sense: {
                 see: "The leader addresses you, asking a question, and gesture to the carved tablet they hold.",
-                hear: "The leader asks you to go west to the place of honor, and bring back its power to your community."
+                hear: 
+`The leader asks you to go west to the place of honor, and bring back its power to your community.
+The leader motions to the jar of paint strapped to your belt and tells you to mark your knowledge so
+ others may learn of the place's honor and power.` 
             }
         },
         leader_tablet: {
@@ -112,13 +115,13 @@ export const PERMANENT = {
                 see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away.",
                 touch: "The monolith is cold and smooth.",
                 taste: "Stony and mineral-like.",
-                write: "You carefully paint to help your community understand the strange symbols found in this place."
+                write: "You carefully paint on the monolith to help your community understand the strange symbols found in this place."
             },
             location: "outside",
             passive: {
                 see: "a gray stone monolith",
             },
-            rosetta: ""
+            rosetta: "",
         },
         info_text_1: {
             aliases: ["first panel", "panels", "panel", "writing", "damaged panel", "altered panel"],
