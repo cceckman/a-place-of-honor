@@ -63,6 +63,20 @@ form.action {
     justify-content: space-between;
 }
 
+button {
+    background: var(--input-background);
+    color: var(--input-text);
+
+    border: none;
+    border-radius: var(--curve);
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+}
+
 input.action {
     width: calc(100% - 6em);
     margin-right: 1em;
@@ -76,18 +90,10 @@ input.action {
 
 button.action {
     width: 5em;
-    padding: 2px;
-    margin-right: 5px;
-
-    background: var(--input-background);
-    color: var(--input-text);
-
-    border: none;
-    border-radius: var(--curve);
 }
 
 #telemetry {
-    width: 7em;
+    width: 9em;
 }
 
 p {

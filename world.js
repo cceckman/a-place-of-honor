@@ -18,7 +18,7 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *      aliases: list of strings; alternative names that can be used to refer to this item.
  *      moveable: whether this can be moved.
  *          TODO: Unused.
- *      writing: Text to display as writing on this panel.
+ *      writing: Text to display as writing on this item.
  *      rosetta: (String of) Text that is translated on this panel. Percieving the panel may add these to knowledge.
  *      writtenWords: (String of) Text that the player has written on this item. Words are appended to this string
  *          with the "write" command from the player.
@@ -34,6 +34,7 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *          callback: function(item, State) to update the state of the game.
  *          Returns an error string, if there is an error.
  *      lightLevel: light level emitted by this item. Defaults to 0.
+ *      write: Text to display when this item is written to.
  *
  * rooms: mapping of roomId -> Room
  * Room: mapping of:
@@ -47,31 +48,18 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  */
 
 /// Implementation of the light switch in the hot cell.
-function hotCellLightSwitch(self, state) {
+function hotCellLightSwitch(_self, state) {
     console.log("flipping lightswitch")
     // light to room, on this circuit
     const MAPPINGS = {
         "hot cell light": "hot cell",
     };
-    if (self.state) {
-        // Turn off.
-        self.state = false
-        for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
-            let room = state.rooms[roomId];
-            let item = room.items[itemId];
-            delete room.items[itemId];
-            // Hold on to it in the nowhere:
-            state.rooms["nowhere"].items[itemId] = item;
-        }
-    } else {
-        // Turn on.
-        self.state = true
-        for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
-            // Move it from the nowhere:
-            let item = state.rooms["nowhere"].items[itemId];
-            delete state.rooms["nowhere"].items[itemId];
-            let room = state.rooms[roomId];
-            room.items[itemId] = item;
+
+    for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
+        if (state.rooms[roomId].itemIds.has(itemId)) {
+            state.rooms[roomId].itemIds.delete(itemId)
+        } else {
+            state.rooms[roomId].itemIds.add(itemId)
         }
     }
     state.currentDescription = "The cylinder pivots across its base, and clicks."
@@ -86,16 +74,17 @@ function flashlightSwitch(self, state) {
     }
 }
 
-function flashlightGet(self, state) {
+function flashlightGet(_self, state) {
     // TODO: Don't let the player pick up if they can't see it
     const itemId = "flashlight1";
-    if (self.location === "player") {
+    if (state.player.itemIds.has(itemId)) {
         state.currentDescription = "You are already holding the black tube.";
         return;
     }
-    let item = state.rooms["hot cell"].items[itemId];
-    delete state.rooms["hot cell"].items[itemId];
-    state.player.items[itemId] = item;
+    for (const room of Object.values(state.rooms)) {
+        room.itemIds.delete(itemId);
+    }
+    state.player.itemIds.add(itemId);
     state.currentDescription = "You pick up the tube."
 }
 
@@ -111,11 +100,11 @@ export const PERMANENT = {
             },
             location: "home",
             sense: {
-                see: "The leader addresses you, asking a question, and gesture to the carved tablet they hold.",
-                hear: 
-`The leader asks you to go west to the place of honor, and bring back its power to your community.
-The leader motions to the jar of paint strapped to your belt and tells you to mark your knowledge so
- others may learn of the place's honor and power.` 
+                see: "The leader addresses you, asking a question, and gestures to the carved tablet they hold and the jar of paint on your belt.",
+                hear:
+                    `The leader asks you to go west to the place of honor, and bring back its power to your community.
+The leader notes you have a jar of paint strapped to your belt and tells you to mark your knowledge so
+ others may learn of the place's honor and power.`
             }
         },
         leader_tablet: {
@@ -139,13 +128,13 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
                 see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away.",
                 touch: "The monolith is cold and smooth.",
                 taste: "Stony and mineral-like.",
-                write: "You carefully paint on the monolith to help your community understand the strange symbols found in this place."
             },
             location: "outside",
             passive: {
                 see: "a gray stone monolith",
             },
             rosetta: "",
+            write: "You carefully paint on the monolith to help your community understand the strange symbols found in this place."
         },
         info_text_1: {
             aliases: ["first panel", "panels", "panel", "writing", "damaged panel", "altered panel"],
@@ -278,10 +267,12 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
             location: "hot cell",
             passive: {
                 "see": "a strange tube on the ground near the hole",
+                "touch": "a tube on the ground near the hole",
             },
             sense: {
                 "see": "A black tube with a yellow dot near its base.",
                 "taste": "It tastes of nothing, but in a way you have never before experienced.",
+                "touch": "The tube fits comfortably in your hand. It is mostly hard, but one end seems softer.",
             },
             action: [
                 {
@@ -289,7 +280,7 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
                     callback: flashlightSwitch,
                 },
                 {
-                    aliases: ["get", "pick up", "hold"],
+                    aliases: ["get", "grab", "hold"],
                     callback: flashlightGet
                 }
             ]
