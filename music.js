@@ -92,13 +92,12 @@ export default class Music {
     constructor() {
         this.musicToggle = document.createElement("button");
         this.musicToggle.id = "music";
-        this.musicToggle.classList.add("margin-top");
         this.musicToggle.innerText = "Music On";
         this.musicToggle.addEventListener("click", () => {
             this.toggleMusic();
         });
 
-        this.melodysequence = new Tone.Part((time, { note, duration, velocity}) => {
+        this.melodysequence = new Tone.Part((time, { note, duration, velocity }) => {
             melodySynth.set({
                 detune: gaussianRandom() * this.detune,
             });

@@ -7,8 +7,6 @@ export default class Telemetry {
     constructor() {
         this.telemetryToggle = document.createElement("button");
         this.telemetryToggle.id = "telemetry";
-        this.telemetryToggle.classList.add("action");
-        this.telemetryToggle.classList.add("margin-top");
         this.telemetryToggle.innerText = "Telemetry On";
         this.telemetryToggle.addEventListener("click", () => {
             this.toggleTelemetry();
