@@ -1,5 +1,6 @@
 import Music from "./music.js";
 import PERMANENT from "./world.js";
+import { pushToLoki } from "./telemetry.js";
 
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
@@ -402,6 +403,22 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         }
         this.applyDose();
         this.render();
+
+        var logMessage = this.textin.value;
+        var tags = {
+            user: "random",
+            level: this.lastError ? "error" : "info",
+            trigger: "action",
+        };
+        if (this.lastError !== null) {
+            pushToLoki(logMessage, tags)
+                .then((data) => {
+                    console.log("Response:", data);
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
     }
 
     // Try to perform the provided action with any items in the room.
