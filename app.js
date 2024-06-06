@@ -63,12 +63,16 @@ const INSPECTIONS = {
     touch: ["feel"],
 };
 
+const INTERACTIONS = {
+    write: ["paint", "draw"],
+}
+
 const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
 
 <div>Return to the place of honor as a new investigator?<br />("restart")</div>`;
 
-function canonicalizeSense(verb) {
-    for (const [canon, aliases] of Object.entries(INSPECTIONS)) {
+function canonicalizeVerb(verb, type = INSPECTIONS) {
+    for (const [canon, aliases] of Object.entries(type)) {
         if (verb === canon || aliases.includes(verb)) {
             return canon;
         }
@@ -381,12 +385,14 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         } else {
             // i.e. player is alive
             // const restArray = tokenizedAction.slice(1);
-            const perceptionVerb = canonicalizeSense(verb);
+            const perceptionVerb = canonicalizeVerb(verb, INSPECTIONS);
+            const interactionVerb = canonicalizeVerb(verb, INTERACTIONS);
             if (MOVE_VERBS.includes(verb)) {
                 this.lastError = this.movePlayer(restString);
             } else if (perceptionVerb) {
                 this.lastError = await this.inspect(perceptionVerb, restString);
-            } else if (verb === "write") {
+            } else if (interactionVerb) {
+                // TODO (when adding new interactions): refactor for more interaction types
                 this.lastError = this.attemptWrite(restString);
             } else if (verb && restString) {
                 // Unknown verb, but there's also an object.
@@ -528,7 +534,7 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         }
         currentRoomWriteableItem.rosetta = `${currentRoomWriteableItem.rosetta || ""} ${text}`.trim();
         currentRoomWriteableItem.writtenWords = `${currentRoomWriteableItem.writtenWords || ""} ${text}`.trim();
-        this.currentDescription = this.currentRoom().senses.write;
+        this.currentDescription = currentRoomWriteableItem.write;
         return "";
     }
 
