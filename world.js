@@ -18,7 +18,7 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *      aliases: list of strings; alternative names that can be used to refer to this item.
  *      moveable: whether this can be moved.
  *          TODO: Unused.
- *      writing: Text to display as writing on this panel.
+ *      writing: Text to display as writing on this item.
  *      rosetta: (String of) Text that is translated on this panel. Percieving the panel may add these to knowledge.
  *      writtenWords: (String of) Text that the player has written on this item. Words are appended to this string
  *          with the "write" command from the player.
@@ -34,6 +34,7 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *          callback: function(item, State) to update the state of the game.
  *          Returns an error string, if there is an error.
  *      lightLevel: light level emitted by this item. Defaults to 0.
+ *      write: Text to display when this item is written to.
  *
  * rooms: mapping of roomId -> Room
  * Room: mapping of:
@@ -127,13 +128,13 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
                 see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away.",
                 touch: "The monolith is cold and smooth.",
                 taste: "Stony and mineral-like.",
-                write: "You carefully paint on the monolith to help your community understand the strange symbols found in this place."
             },
             location: "outside",
             passive: {
                 see: "a gray stone monolith",
             },
             rosetta: "",
+            write: "You carefully paint on the monolith to help your community understand the strange symbols found in this place."
         },
         info_text_1: {
             aliases: ["first panel", "panels", "panel", "writing", "damaged panel", "altered panel"],

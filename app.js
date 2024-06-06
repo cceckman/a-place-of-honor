@@ -219,6 +219,7 @@ class Item {
         this.sense = perm.sense
         this.action = perm.action
         this.writing = perm.writing
+        this.write = perm.write;
         this.lightLevel = perm.lightLevel;
 
         // Saved properties:
