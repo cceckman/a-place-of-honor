@@ -183,6 +183,7 @@ class Room {
 
 class Player {
     constructor(saved) {
+        this.uuid = crypto.randomUUID();
         this.location = saved?.player?.location ?? START_LOCATION;
         this.dosage = saved?.player?.dosage ?? 0;
         this.damage = saved?.player?.damage ?? 0;
@@ -406,18 +407,16 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
         var logMessage = this.textin.value;
         var tags = {
-            user: "random",
+            user: this.player.uuid, // WARNING: this value will have a very high cardinality
+            room: this.player.location,
+            damageLevel: this.player.currentDamageLevel.toString(),
             level: this.lastError ? "error" : "info",
             trigger: "action",
         };
         if (this.lastError !== null) {
-            pushToLoki(logMessage, tags)
-                .then((data) => {
-                    console.log("Response:", data);
-                })
-                .catch((error) => {
-                    console.error("Error:", error);
-                });
+            pushToLoki(logMessage, tags).catch((error) => {
+                console.error("Error:", error);
+            });
         }
     }
 
