@@ -143,6 +143,10 @@ async function hideText(original, knowledge) {
     return output;
 }
 
+function getLightLevel(items, base = 0) {
+    return Object.values(items).reduce((acc, item) => acc + (item.lightLevel ?? 0), base)
+}
+
 class Room {
     constructor(roomid, permanent, saved) {
         const static_room = permanent.rooms[roomid];
@@ -176,7 +180,7 @@ class Room {
     }
 
     getLightLevel() {
-        return Object.values(this.items).reduce((acc, item) => acc + (item.lightLevel ?? 0), this.lightLevel);
+        return getLightLevel(this.items, this.lightLevel);
     }
 }
 
@@ -189,6 +193,7 @@ class Player {
         this.lastDoseTimestamp = Date.now();
         this.currentDamageLevel = saved?.player?.currentDamageThreshold ?? 0;
         this.symptoms = saved?.player?.symptoms ?? new Set([]);
+        this.items = {};
 
         // Knowledge is a set of known words.
         // We don't (yet) keep a full translation table, in either direction;
@@ -196,6 +201,10 @@ class Player {
         // We also keep "\n" here so we can preserve newlines in the input >.>
         this.knowledge =
             saved?.player?.knowledge ?? new Set([]);
+    }
+
+    getLightLevel() {
+        return getLightLevel(this.items);
     }
 }
 
@@ -278,7 +287,7 @@ class State {
     // earplugs to cancel hearing... deafness from a "bang"
     getLightLevel() {
         // TODO: implement blindness, summing a player's light-level value.
-        return this.currentRoom().getLightLevel()
+        return Math.max(this.currentRoom().getLightLevel(), this.player.getLightLevel());
     }
 
     render() {
@@ -407,7 +416,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
     // Try to perform the provided action with any items in the room.
     itemAction(verb, rest) {
         const room = this.currentRoom();
-        for (const [itemId, item] of Object.entries(room.items)) {
+        const localItems = [ ...Object.entries(room.items), ...Object.entries(this.player.items )];
+        for (const [itemId, item] of localItems) {
             if (!item.aliases.includes(rest)) {
                 continue;
             }

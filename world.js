@@ -75,6 +75,28 @@ function hotCellLightSwitch(self, state) {
     state.currentDescription = "The cylinder pivots across its base, and clicks."
 }
 
+function flashlightSwitch(self, state) {
+    self.lightLevel = self.lightLevel === 1 ? 0 : 1;
+    if (self.lightLevel === 1) {
+        state.currentDescription = "The tube is now emitting light from one of its ends.";
+    } else {
+        state.currentDescription = "The tube goes dark.";
+    }
+}
+
+function flashlightGet(self, state) {
+    // TODO: Don't let the player pick up if they can't see it
+    const itemId = "flashlight1";
+    if (self.location === "player") {
+        state.currentDescription = "You are already holding the black tube.";
+        return;
+    }
+    let item = state.rooms["hot cell"].items[itemId];
+    delete state.rooms["hot cell"].items[itemId];
+    state.player.items[itemId] = item;
+    state.currentDescription = "You pick up the tube."
+}
+
 
 export const PERMANENT = {
     items: {
@@ -186,6 +208,7 @@ export const PERMANENT = {
              it is likely that rock and metal can be eliminated from the candidate list due to cost"
             */
             passive: {
+                "see": "a disc with symbols engraved on it",
                 "touch": "a hard and smooth disc, head-sized, loose on the ground"
             },
             sense: {
@@ -241,6 +264,28 @@ export const PERMANENT = {
                 "hear": "A faint high-pitched whine eminates from the center of the ceiling, high above your head."
             },
             lightLevel: 1,
+        },
+        flashlight1: {
+            aliases: ["tube", "torch", "stick", "flashlight"],
+            moveable: true,
+            location: "hot cell",
+            passive: {
+                "see": "a strange tube on the ground near the hole",
+            },
+            sense: {
+                "see": "A black tube with a yellow dot near its base.",
+                "taste": "It tastes of nothing, but in a way you have never before experienced.",
+            },
+            action: [
+                {
+                    aliases: ["push", "flip", "activate", "toggle"],
+                    callback: flashlightSwitch,
+                },
+                {
+                    aliases: ["get", "pick up", "hold"],
+                    callback: flashlightGet
+                }
+            ]
         }
     },
     rooms: {
@@ -300,6 +345,7 @@ export const PERMANENT = {
             },
             rad_rate: 0.05,
             senses: {
+                "see": "a long tunnel sloping gently downwards",
                 "touch": "walls around you, the tunnel before and behind you, sloping gently downwards",
                 "hear": "wind from the upper end of the tunnel",
                 "smell": "earth",
