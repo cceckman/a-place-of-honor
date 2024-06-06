@@ -344,11 +344,6 @@ class State {
         }
 
         this.errors.innerText = this.lastError;
-        if (this.lastError === "") {
-            // No error in the last input; clear it.
-            this.textin.value = "";
-        }
-
         // TODO include (???)
     }
 
@@ -450,6 +445,11 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         }
         this.applyDose();
         this.render();
+
+        // Clear the input only after a successful command.
+        if (this.lastError === "") {
+            this.textin.value = "";
+        }
 
         var logMessage = this.textin.value;
         var tags = {
