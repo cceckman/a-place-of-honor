@@ -47,31 +47,18 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  */
 
 /// Implementation of the light switch in the hot cell.
-function hotCellLightSwitch(self, state) {
+function hotCellLightSwitch(_self, state) {
     console.log("flipping lightswitch")
     // light to room, on this circuit
     const MAPPINGS = {
         "hot cell light": "hot cell",
     };
-    if (self.state) {
-        // Turn off.
-        self.state = false
-        for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
-            let room = state.rooms[roomId];
-            let item = room.items[itemId];
-            delete room.items[itemId];
-            // Hold on to it in the nowhere:
-            state.rooms["nowhere"].items[itemId] = item;
-        }
-    } else {
-        // Turn on.
-        self.state = true
-        for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
-            // Move it from the nowhere:
-            let item = state.rooms["nowhere"].items[itemId];
-            delete state.rooms["nowhere"].items[itemId];
-            let room = state.rooms[roomId];
-            room.items[itemId] = item;
+
+    for (const [itemId, roomId] of Object.entries(MAPPINGS)) {
+        if (state.rooms[roomId].itemIds.has(itemId)) {
+            state.rooms[roomId].itemIds.delete(itemId)
+        } else {
+            state.rooms[roomId].itemIds.add(itemId)
         }
     }
     state.currentDescription = "The cylinder pivots across its base, and clicks."
@@ -86,16 +73,17 @@ function flashlightSwitch(self, state) {
     }
 }
 
-function flashlightGet(self, state) {
+function flashlightGet(_self, state) {
     // TODO: Don't let the player pick up if they can't see it
     const itemId = "flashlight1";
-    if (self.location === "player") {
+    if (state.player.itemIds.has(itemId)) {
         state.currentDescription = "You are already holding the black tube.";
         return;
     }
-    let item = state.rooms["hot cell"].items[itemId];
-    delete state.rooms["hot cell"].items[itemId];
-    state.player.items[itemId] = item;
+    for (const room of Object.values(state.rooms)) {
+        room.itemIds.delete(itemId);
+    }
+    state.player.itemIds.add(itemId);
     state.currentDescription = "You pick up the tube."
 }
 
@@ -278,10 +266,12 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
             location: "hot cell",
             passive: {
                 "see": "a strange tube on the ground near the hole",
+                "touch": "a tube on the ground near the hole",
             },
             sense: {
                 "see": "A black tube with a yellow dot near its base.",
                 "taste": "It tastes of nothing, but in a way you have never before experienced.",
+                "touch": "The tube fits comfortably in your hand. It is mostly hard, but one end seems softer.",
             },
             action: [
                 {
@@ -289,7 +279,7 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
                     callback: flashlightSwitch,
                 },
                 {
-                    aliases: ["get", "pick up", "hold"],
+                    aliases: ["get", "grab", "hold"],
                     callback: flashlightGet
                 }
             ]

@@ -167,39 +167,24 @@ function getLightLevel(items, base = 0) {
 class Room {
     constructor(roomid, permanent, saved) {
         const static_room = permanent.rooms[roomid];
+        const saved_room = (saved ? saved.rooms[roomid] : null) ?? null;
 
-        // mapping of sense to description
         this.senses = static_room.senses;
         this.exits = static_room.exits;
         this.rad_rate = static_room.rad_rate;
         this.droneVolume = static_room.droneVolume;
+        // TODO: implement "write on..."
+        this.writeableItem = static_room.writeableItem;
 
         this.lightLevel =
             saved?.rooms[roomid]?.lightLevel ??
             permanent.rooms[roomid].lightLevel ??
             0;
-
-        this.items = {}; // ID to description
-        if (saved !== null && saved !== undefined) {
-            for (const [itemid, item] of saved?.items?.entries) {
-                if (item.location === roomid) {
-                    this.items[itemid] = item;
-                }
-            }
-        }
-
-        this.writeableItem = static_room.writeableItem;
-        // static.rooms[].item contains just item IDs;
-        // separate "items" table has the other state
-        Object.entries(permanent.items).forEach(([itemId, item]) => {
-            if (!saved?.items?.contains(itemId) && item.location == roomid) {
-                this.items[itemId] = item;
-            }
-        });
-    }
-
-    getLightLevel() {
-        return getLightLevel(this.items, this.lightLevel);
+        const permanent_ids =
+            Object.entries(permanent.items).filter(([_, item]) => {
+                return item.location == roomid
+            }).map(([id, _]) => id);
+        this.itemIds = new Set(saved_room ? saved_room.itemIds : permanent_ids);
     }
 }
 
@@ -212,32 +197,59 @@ class Player {
         // always set the last dose timer to the current time so that players do not accumulate dosage while the game is closed
         this.lastDoseTimestamp = Date.now();
         this.currentDamageLevel = saved?.player?.currentDamageThreshold ?? 0;
-        this.symptoms = saved?.player?.symptoms ?? new Set([]);
-        this.items = {};
+        this.symptoms = new Set(saved?.player?.symptoms ?? []);
+        this.itemIds = new Set(saved?.player?.itemIds ?? []);
 
         // Knowledge is a set of known words.
         // We don't (yet) keep a full translation table, in either direction;
         // we just obfuscate unknown words.
         // We also keep "\n" here so we can preserve newlines in the input >.>
-        this.knowledge = saved?.player?.knowledge ?? new Set([]);
+        this.knowledge = new Set(saved?.player?.knowledge ?? []);
+    }
+}
+
+class Item {
+    constructor(itemid, permanent, saved) {
+        const perm = permanent.items[itemid];
+        const save = (saved ? saved[itemid] : {})
+        // Immutable properties:
+        this.aliases = perm.aliases
+        this.moveable = perm.moveable
+        this.passive = perm.passive
+        this.sense = perm.sense
+        this.action = perm.action
+        this.writing = perm.writing
+        this.lightLevel = perm.lightLevel;
+
+        // Saved properties:
+        this.rosetta = save?.rosetta ?? perm.rosetta;
+        this.writtenWords = save?.writtenWords ?? "";
     }
 
-    getLightLevel() {
-        return getLightLevel(this.items);
+    save() {
+        return {
+            rosetta: this.rosetta,
+            writtenWords: this.writtenWords,
+        }
     }
 }
 
 class State {
-    constructor(permanent, saved) {
+    constructor(permanent, saved, music) {
         // Set up game state:
-        this.music = new Music();
+        this.music = music ?? new Music();
         this.telemetry = new Telemetry();
         this.rooms = {};
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
-        this.newInvestigator(saved);
-        console.log(this.rooms);
+
+        this.items = {}
+        for (const itemid in permanent.items) {
+            this.items[itemid] = new Item(itemid, permanent, saved);
+        }
+        this.newInvestigator(saved)
+        console.log(this.rooms)
 
         const terminal = document.getElementById("terminal");
         while (terminal.firstChild) {
@@ -295,6 +307,15 @@ class State {
         this.music.restartArpeggio();
     }
 
+    // Return a Set of item IDs from current room and inventory.
+    currentItemIds() {
+        // Firefox doesn't have .union.
+        return new Set([
+            ...this.currentRoom().itemIds,
+            ...this.player.itemIds,
+        ])
+    }
+
     // Functions that act based on sight -- for items, or for rooms --
     // should check the "light level" before having their effect.
     // This is the sum of:
@@ -307,16 +328,18 @@ class State {
     // If greater than zero, the investigator can see.
     //
     // TODO:
-    // - Investigator-carried lights
     // - Investigator blindness, as a -Infinity value
     // TODO: Generalize across senses? An acrid smell or a gas mask,
     // earplugs to cancel hearing... deafness from a "bang"
     getLightLevel() {
-        // TODO: implement blindness, summing a player's light-level value.
-        return Math.max(
-            this.currentRoom().getLightLevel(),
-            this.player.getLightLevel()
-        );
+        let ids = this.currentItemIds();
+        let levels = Array.from(ids).map((id) => this.items[id].lightLevel ?? 0);
+        // This is a simple "reduce" rather than e.g. "max" so that one strongly negative
+        // source can overcome all others.
+        // For instance, if the investigator is blindfolded or blind, they would not
+        // be able to see at all.
+        // TODO: Include a player.lightLevel property
+        return levels.reduce((acc, level) => acc + level, this.currentRoom().lightLevel ?? 0);
     }
 
     render() {
@@ -330,7 +353,7 @@ class State {
         } else {
             const selectedSymptom =
                 Array.from(this.player.symptoms)[
-                    Math.floor(Math.random() * this.player.symptoms.size)
+                Math.floor(Math.random() * this.player.symptoms.size)
                 ] ?? "";
             this.symptoms.innerText = selectedSymptom;
         }
@@ -357,9 +380,9 @@ class State {
 
         const room = this.currentRoom();
         let senses = [room.senses[sense]];
-        const itemPassives = Object.entries(room.items).map(
-            ([_itemId, item]) => {
-                return item.passive[sense];
+        const itemPassives = Array.from(room.itemIds).map(
+            (itemId) => {
+                return this.items[itemId].passive[sense];
             }
         );
         senses = [...senses, ...itemPassives].filter((sense) => sense);
@@ -383,10 +406,10 @@ class State {
     renderPassiveSenses() {
         return `
 ${Object.keys(DEFAULT_ROOM_SENSES)
-    .map((sense) => {
-        return this.renderPassiveSense(sense);
-    })
-    .join("<br />")}
+                .map((sense) => {
+                    return this.renderPassiveSense(sense);
+                })
+                .join("<br />")}
 `;
     }
 
@@ -426,6 +449,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 // TODO (when adding new interactions): refactor for more interaction types
                 this.lastError = this.attemptWrite(restString);
             } else if (verb && restString) {
+                // TODO:: Allow for multi-word verbs, e.g. "pick up"
+
                 // Unknown verb, but there's also an object.
                 // Try applying the verb to the object.
                 // Take the error, or the empty string if Charles forgot to add a return value
@@ -468,12 +493,9 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
     // Try to perform the provided action with any items in the room.
     itemAction(verb, rest) {
-        const room = this.currentRoom();
-        const localItems = [
-            ...Object.entries(room.items),
-            ...Object.entries(this.player.items),
-        ];
-        for (const [itemId, item] of localItems) {
+        const localItems = this.currentItemIds()
+        for (const itemId of localItems) {
+            let item = this.items[itemId];
             if (!item.aliases.includes(rest)) {
                 continue;
             }
@@ -513,9 +535,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         }
 
         // Look up the item in the room.
-        for (const [_itemId, item] of Object.entries(
-            this.currentRoom().items
-        )) {
+        for (const itemId of this.currentItemIds()) {
+            let item = this.items[itemId];
             if (item.aliases.includes(itemName)) {
                 this.currentDescription =
                     item.sense[verb] ?? DEFAULT_ITEM_SENSES[verb];
@@ -548,7 +569,7 @@ The text reads:
 
                 if (item.writtenWords) {
                     this.currentDescription += `<br/>
-You see more recent markings describing the symbols for the following words: ${item.writtenWords}`;
+You see more recent markings describing the symbols for the following words: <q>${item.writtenWords}</q>`;
                 }
 
                 if (item.rosetta && this.learn(item.rosetta)) {
@@ -580,8 +601,9 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         if (!knownWords.includes(text)) {
             return `You don't know ${text}. You know ${knownWords.join(", ")}.`;
         }
-        const currentRoomWriteableItem =
-            this.currentRoom().items[this.currentRoom().writeableItem];
+
+        // TODO: implement "write on..."
+        const currentRoomWriteableItem = this.items[this.currentRoom().writeableItem];
         if (!currentRoomWriteableItem) {
             return "There is nothing to write on here.";
         }
@@ -672,5 +694,17 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
     }
 }
 
-// Attach to the window object for debugging:
-window.gameState = new State(PERMANENT, /*saved = */ undefined);
+function start() {
+    // tone.js doesn't like a new controller getting instantiated.
+    // Treat music as a singleton; preserve it if we create a new game state.
+    let music = undefined;
+    if (window.gameState) {
+        window.gameState.music?.stopMusic()
+        music = window.gameState.music;
+    }
+
+    window.gameState = new State(PERMANENT, undefined, music);
+}
+
+start()
+

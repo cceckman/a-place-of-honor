@@ -81,7 +81,6 @@ export default class Music {
     constructor() {
         this.musicToggle = document.createElement("button");
         this.musicToggle.id = "music";
-        this.musicToggle.classList.add("action");
         this.musicToggle.classList.add("margin-top");
         this.musicToggle.innerText = "Music On";
         this.musicToggle.addEventListener("click", () => {
@@ -116,6 +115,7 @@ export default class Music {
         }, arpeggioNotes).start(0);
     }
 
+    // Add controls as children of the provided parent element.
     attachControls(parent) {
         parent.appendChild(this.musicToggle);
     }
@@ -133,6 +133,11 @@ export default class Music {
         this.musicOn = !this.musicOn;
         this.musicToggle.innerText = this.musicOn ? "Music Off" : "Music On";
         this.toggleInstruments(this.activeInstrumentNames);
+    }
+
+    stopMusic() {
+        this.musicOn = true;
+        this.toggleMusic()
     }
 
     toggleInstruments(instrumentNames, isOn = this.musicOn) {
