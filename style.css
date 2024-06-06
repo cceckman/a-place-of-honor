@@ -73,8 +73,7 @@ button {
     padding-right: 0.5em;
     padding-top: 2px;
     padding-bottom: 2px;
-    margin-left: 0.5em;
-    margin-right: 0.5em;
+    margin: 0.5em;
 }
 
 input.action {
@@ -116,6 +115,7 @@ blockquote {
     word-spacing: 0.5em;
 }
 
-.margin-top {
-    margin-top: 0.25rem;
+#controls {
+    display: flex;
+    justify-content: space-between;
 }
