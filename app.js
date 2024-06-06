@@ -460,7 +460,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             trigger: "action",
         };
         if (this.lastError !== null) {
-            pushToLoki(logMessage, tags).catch((error) => {
+            this.telemetry.log(logMessage, tags).catch((error) => {
                 console.error("Error:", error);
             });
         }
