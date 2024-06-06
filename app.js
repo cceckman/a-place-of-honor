@@ -433,6 +433,9 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             this.music.setDroneVolume(this.currentRoom().droneVolume);
             return "";
         }
+        if (direction === "") {
+            return "Where do you want to go?"
+        }
         return `Cannot move to ${direction}`;
     }
 
