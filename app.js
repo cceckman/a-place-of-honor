@@ -227,21 +227,22 @@ class State {
         this.newInvestigator(saved)
         console.log(this.rooms)
 
-        const loading = document.getElementById("loading-indicator");
-        loading.remove();
-        const main = document.getElementsByTagName("main").item(0);
+        const terminal = document.getElementById("terminal");
+        while (terminal.firstChild) {
+            terminal.removeChild(terminal.firstChild)
+        }
 
         this.perception = document.createElement("p");
         this.perception.id = "perception";
-        main.appendChild(this.perception);
+        terminal.appendChild(this.perception);
 
         this.symptoms = document.createElement("p");
         this.symptoms.id = "symptoms";
-        main.appendChild(this.symptoms);
+        terminal.appendChild(this.symptoms);
 
         this.errors = document.createElement("p");
         this.errors.id = "errors";
-        main.appendChild(this.errors);
+        terminal.appendChild(this.errors);
 
         const form = document.createElement("form");
         form.classList.add("action");
@@ -249,7 +250,7 @@ class State {
             ev.preventDefault();
             await this.act();
         });
-        main.appendChild(form);
+        terminal.appendChild(form);
 
         this.textin = document.createElement("input");
         this.textin.type = "text";
@@ -263,7 +264,11 @@ class State {
         this.button.innerText = "Act.";
         form.appendChild(this.button);
 
-        main.appendChild(this.music.musicToggle);
+        const controls = document.getElementById("controls");
+        while (controls.firstChild) {
+            controls.removeChild(controls.firstChild)
+        }
+        this.music.attachControls(controls)
 
         this.lastError = ""
         this.render();
@@ -442,7 +447,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
     // Try to perform the provided action with any items in the room.
     itemAction(verb, rest) {
         const room = this.currentRoom();
-        const localItems = [ ...Object.entries(room.items), ...Object.entries(this.player.items )];
+        const localItems = [...Object.entries(room.items), ...Object.entries(this.player.items)];
         for (const [itemId, item] of localItems) {
             if (!item.aliases.includes(rest)) {
                 continue;
@@ -515,7 +520,7 @@ The text reads:
 <blockquote>${hidden}</blockquote>
 `;
                 }
-                
+
                 if (item.writtenWords) {
                     this.currentDescription += `<br/>
 You see more recent markings describing the symbols for the following words: ${item.writtenWords}`;
@@ -544,11 +549,11 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             this.currentDescription = "You don't know any words to write.";
             return "";
         }
-        if(!text) {
+        if (!text) {
             this.currentDescription = `What would you like to write? You know ${knownWords.join(", ")}`;
             return "";
         }
-        if(!knownWords.includes(text)) {
+        if (!knownWords.includes(text)) {
             return `You don't know ${text}. You know ${knownWords.join(", ")}.`;
         }
         const currentRoomWriteableItem = this.currentRoom().items[this.currentRoom().writeableItem];

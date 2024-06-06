@@ -49,10 +49,12 @@ body {
 }
 
 main {
-    height: 100%;
+    height: calc(100% - 1em);
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
+
+    margin: 0.5em;
 }
 
 form.action {

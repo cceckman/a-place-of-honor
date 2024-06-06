@@ -29,9 +29,9 @@ const melodySynth = new Tone.Synth({
     }
 }).connect(reverb).toDestination();
 
-const arpeggio1Notes = [ "C3", "F3", "Bb3", "Eb4", "Bb3", "F3" ];
-const arpeggio2Notes = [ "C3", "A3", "E4", "B4", "E4", "A3" ];
-const arpeggioNotes = [ ...arpeggio1Notes, ...arpeggio1Notes, ...arpeggio2Notes, ...arpeggio2Notes ];
+const arpeggio1Notes = ["C3", "F3", "Bb3", "Eb4", "Bb3", "F3"];
+const arpeggio2Notes = ["C3", "A3", "E4", "B4", "E4", "A3"];
+const arpeggioNotes = [...arpeggio1Notes, ...arpeggio1Notes, ...arpeggio2Notes, ...arpeggio2Notes];
 const melodyPart = [
     ["0:0", "Eb6"], ["0:3", "D6"], ["1:1:2", "Eb6"], ["1:1:3", "D6"],
     ["1:2", "C6"], ["2:1", "Bb5"], ["2:2", "Ab5"], ["2:3", "G5"],
@@ -43,7 +43,7 @@ const DEFAULT_DETUNE = 10;
 function gaussianRandom(mean = 0, stdev = 1) {
     const u = 1 - Math.random(); // Converting [0,1) to (0,1]
     const v = Math.random();
-    const z = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+    const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
     // Transform to the desired mean and standard deviation:
     return z * stdev + mean;
 }
@@ -103,6 +103,10 @@ export default class Music {
 
     }
 
+    attachControls(parent) {
+        parent.appendChild(this.musicToggle)
+    }
+
     instrumentControl(instrumentName, isOn) {
         const instrumentToggle = instrumentToggles[instrumentName];
         if (isOn) {
@@ -130,8 +134,8 @@ export default class Music {
 
     stopArpeggioAndReduceDrone() {
         this.onlyDrone = true;
-        this.toggleInstruments([ "arpeggio" ], false);
-        this.activeInstrumentNames = [ "droneSynth1", "droneSynth2" ];
+        this.toggleInstruments(["arpeggio"], false);
+        this.activeInstrumentNames = ["droneSynth1", "droneSynth2"];
         this.setDroneVolume(DEFAULT_DRONE_VOLUME);
     }
 
@@ -139,12 +143,12 @@ export default class Music {
         this.onlyDrone = false;
         this.detune = DEFAULT_DETUNE;
         this.activeInstrumentNames = allInstrumentNames;
-        this.toggleInstruments([ "arpeggio" ])
+        this.toggleInstruments(["arpeggio"])
     }
 
     setDroneVolume(volume) {
         droneVolume.set({ volume: volume });
-        this.toggleInstruments([ "droneSynth1", "droneSynth2" ]);
+        this.toggleInstruments(["droneSynth1", "droneSynth2"]);
     }
 
 }

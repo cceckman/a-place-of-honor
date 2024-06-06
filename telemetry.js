@@ -12,7 +12,7 @@ export async function pushToLoki(message, tags = {}) {
 
     try {
         const response = await fetch(
-            "https://apoh.alexkarpinski.com/loki/api/v1/push",
+            "http://apoh.alexkarpinski.com/loki/api/v1/push",
             {
                 method: "POST",
                 headers: {
