@@ -1,6 +1,6 @@
 import Music from "./music.js";
 import PERMANENT from "./world.js";
-import { pushToLoki } from "./telemetry.js";
+import Telemetry from "./telemetry.js";
 
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
@@ -29,31 +29,40 @@ const DAMAGE_LEVELS = [
         symptoms: [
             "You cough. You taste blood.",
             "Your stomach turns. You taste acid.",
-            "You turn. Which way did you come from? Which is the way ahead?"
-        ], nextThreshold: 1000
+            "You turn. Which way did you come from? Which is the way ahead?",
+        ],
+        nextThreshold: 1000,
     },
     {
         symptoms: [
             "Your stomach turns. Vomit wells in your mouth.",
-            "Your legs falter. You slip, then recover."
-        ], nextThreshold: 5000
+            "Your legs falter. You slip, then recover.",
+        ],
+        nextThreshold: 5000,
     },
     {
         symptoms: [
             "You collapse. You stay still for a moment, then struggle to rise.",
             "You cough. Blood trickles from your mouth.",
             "You spit, but you still taste blood.",
-            "Your senses fade in and out. Where are you? Where have you been?"
-        ], nextThreshold: 10000
+            "Your senses fade in and out. Where are you? Where have you been?",
+        ],
+        nextThreshold: 10000,
     },
     {
         symptoms: [
             "You collapse. You stay still for a moment, then struggle to rise.",
             "You cough. Blood trickles from your mouth.",
-            "You close your eyes for a moment. You struggle to open them again."
-        ], nextThreshold: 10000
+            "You close your eyes for a moment. You struggle to open them again.",
+        ],
+        nextThreshold: 10000,
     },
-    { symptoms: [/*At the last threshold, there is only one symptom.*/], nextThreshold: Infinity },
+    {
+        symptoms: [
+            /*At the last threshold, there is only one symptom.*/
+        ],
+        nextThreshold: Infinity,
+    },
 ];
 
 const INSPECTIONS = {
@@ -66,7 +75,7 @@ const INSPECTIONS = {
 
 const INTERACTIONS = {
     write: ["paint", "draw"],
-}
+};
 
 const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
 
@@ -149,13 +158,15 @@ async function hideText(original, knowledge) {
 }
 
 function getLightLevel(items, base = 0) {
-    return Object.values(items).reduce((acc, item) => acc + (item.lightLevel ?? 0), base)
+    return Object.values(items).reduce(
+        (acc, item) => acc + (item.lightLevel ?? 0),
+        base
+    );
 }
 
 class Room {
     constructor(roomid, permanent, saved) {
         const static_room = permanent.rooms[roomid];
-
 
         // mapping of sense to description
         this.senses = static_room.senses;
@@ -163,7 +174,8 @@ class Room {
         this.rad_rate = static_room.rad_rate;
         this.droneVolume = static_room.droneVolume;
 
-        this.lightLevel = saved?.rooms[roomid]?.lightLevel ??
+        this.lightLevel =
+            saved?.rooms[roomid]?.lightLevel ??
             permanent.rooms[roomid].lightLevel ??
             0;
 
@@ -207,8 +219,7 @@ class Player {
         // We don't (yet) keep a full translation table, in either direction;
         // we just obfuscate unknown words.
         // We also keep "\n" here so we can preserve newlines in the input >.>
-        this.knowledge =
-            saved?.player?.knowledge ?? new Set([]);
+        this.knowledge = saved?.player?.knowledge ?? new Set([]);
     }
 
     getLightLevel() {
@@ -220,16 +231,17 @@ class State {
     constructor(permanent, saved) {
         // Set up game state:
         this.music = new Music();
+        this.telemetry = new Telemetry();
         this.rooms = {};
         for (const roomid in permanent.rooms) {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
-        this.newInvestigator(saved)
-        console.log(this.rooms)
+        this.newInvestigator(saved);
+        console.log(this.rooms);
 
         const terminal = document.getElementById("terminal");
         while (terminal.firstChild) {
-            terminal.removeChild(terminal.firstChild)
+            terminal.removeChild(terminal.firstChild);
         }
 
         this.perception = document.createElement("p");
@@ -266,19 +278,20 @@ class State {
 
         const controls = document.getElementById("controls");
         while (controls.firstChild) {
-            controls.removeChild(controls.firstChild)
+            controls.removeChild(controls.firstChild);
         }
-        this.music.attachControls(controls)
+        this.music.attachControls(controls);
+        this.telemetry.attachControls(controls);
 
-        this.lastError = ""
+        this.lastError = "";
         this.render();
     }
 
     newInvestigator(saved) {
-        this.player = new Player(saved)
+        this.player = new Player(saved);
         this.currentDescription = "";
 
-        this.music.setDroneVolume(this.currentRoom().droneVolume)
+        this.music.setDroneVolume(this.currentRoom().droneVolume);
         this.music.restartArpeggio();
     }
 
@@ -300,7 +313,10 @@ class State {
     // earplugs to cancel hearing... deafness from a "bang"
     getLightLevel() {
         // TODO: implement blindness, summing a player's light-level value.
-        return Math.max(this.currentRoom().getLightLevel(), this.player.getLightLevel());
+        return Math.max(
+            this.currentRoom().getLightLevel(),
+            this.player.getLightLevel()
+        );
     }
 
     render() {
@@ -314,7 +330,7 @@ class State {
         } else {
             const selectedSymptom =
                 Array.from(this.player.symptoms)[
-                Math.floor(Math.random() * this.player.symptoms.size)
+                    Math.floor(Math.random() * this.player.symptoms.size)
                 ] ?? "";
             this.symptoms.innerText = selectedSymptom;
         }
@@ -341,7 +357,7 @@ class State {
         // "active" touch would be walking around and poking things, feeling out the walls;
         // "passive" touch would be airflow, temperature, etc.
         if (sense === "see" && this.getLightLevel() <= 0) {
-            return `You cannot see.`
+            return `You cannot see.`;
         }
 
         const room = this.currentRoom();
@@ -361,7 +377,7 @@ class State {
         let joiner = ", ";
         for (const sense of senses) {
             if (sense.includes(",")) {
-                joiner = "; "
+                joiner = "; ";
                 break;
             }
         }
@@ -372,10 +388,10 @@ class State {
     renderPassiveSenses() {
         return `
 ${Object.keys(DEFAULT_ROOM_SENSES)
-                .map((sense) => {
-                    return this.renderPassiveSense(sense);
-                })
-                .join("<br />")}
+    .map((sense) => {
+        return this.renderPassiveSense(sense);
+    })
+    .join("<br />")}
 `;
     }
 
@@ -388,12 +404,16 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
         const tokenizedAction = this.textin.value.split(" ");
         const verb = tokenizedAction[0].toLowerCase();
-        const restString = tokenizedAction.slice(1).join(" ").trim().toLowerCase();
+        const restString = tokenizedAction
+            .slice(1)
+            .join(" ")
+            .trim()
+            .toLowerCase();
 
         // TODO - if player is null only allow the "restart" action (or "continue", or whatever we call it)
         if (this.player === null) {
             if (RESTART_VERBS.includes(verb)) {
-                this.newInvestigator()
+                this.newInvestigator();
                 this.lastError = "";
             } else {
                 this.lastError = `I can't ${verb}. I am dead.`;
@@ -415,7 +435,9 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 // Try applying the verb to the object.
                 // Take the error, or the empty string if Charles forgot to add a return value
                 // from the function.
-                this.lastError = String(this.itemAction(verb, restString) ?? "");
+                this.lastError = String(
+                    this.itemAction(verb, restString) ?? ""
+                );
             } else if (verb) {
                 // Unknown action.
                 this.lastError = `I don't know ${verb}`;
@@ -447,14 +469,17 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
     // Try to perform the provided action with any items in the room.
     itemAction(verb, rest) {
         const room = this.currentRoom();
-        const localItems = [...Object.entries(room.items), ...Object.entries(this.player.items)];
+        const localItems = [
+            ...Object.entries(room.items),
+            ...Object.entries(this.player.items),
+        ];
         for (const [itemId, item] of localItems) {
             if (!item.aliases.includes(rest)) {
                 continue;
             }
             // Found the item:
-            console.log(`applying ${verb} to ${itemId}`)
-            for (const action of (item.action ?? [])) {
+            console.log(`applying ${verb} to ${itemId}`);
+            for (const action of item.action ?? []) {
                 if (action.aliases.includes(verb)) {
                     // Found it!
                     return action.callback(item, this);
@@ -475,7 +500,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             return "";
         }
         if (direction === "") {
-            return "Where do you want to go?"
+            return "Where do you want to go?";
         }
         return `Cannot move to ${direction}`;
     }
@@ -502,8 +527,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
                 // Sight special cases:
                 if (this.getLightLevel() <= 0) {
-                    this.currentDescription = `You cannot see the ${itemName}.`
-                    return ""
+                    this.currentDescription = `You cannot see the ${itemName}.`;
+                    return "";
                 }
 
                 // If this verb allows perceiving writing,
@@ -533,7 +558,6 @@ You see more recent markings describing the symbols for the following words: ${i
                     this.currentDescription += `<br />
 You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
 `;
-
                 }
 
                 // No error:
@@ -556,15 +580,18 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         if (!knownWords.includes(text)) {
             return `You don't know ${text}. You know ${knownWords.join(", ")}.`;
         }
-        const currentRoomWriteableItem = this.currentRoom().items[this.currentRoom().writeableItem];
+        const currentRoomWriteableItem =
+            this.currentRoom().items[this.currentRoom().writeableItem];
         if (!currentRoomWriteableItem) {
             return "There is nothing to write on here.";
         }
         if (currentRoomWriteableItem.rosetta.includes(text)) {
             return `${text} is already written here.`;
         }
-        currentRoomWriteableItem.rosetta = `${currentRoomWriteableItem.rosetta || ""} ${text}`.trim();
-        currentRoomWriteableItem.writtenWords = `${currentRoomWriteableItem.writtenWords || ""} ${text}`.trim();
+        currentRoomWriteableItem.rosetta =
+            `${currentRoomWriteableItem.rosetta || ""} ${text}`.trim();
+        currentRoomWriteableItem.writtenWords =
+            `${currentRoomWriteableItem.writtenWords || ""} ${text}`.trim();
         this.currentDescription = currentRoomWriteableItem.write;
         return "";
     }
@@ -578,7 +605,7 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             }
         }
         // Return "true" if something was learned:
-        return this.player.knowledge.size != knownBefore
+        return this.player.knowledge.size != knownBefore;
     }
 
     killPlayer() {
@@ -627,7 +654,7 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             }
 
             // Re-render:
-            this.render()
+            this.render();
         }
 
         // if there aren't any more damage levels above the current one
@@ -647,4 +674,3 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
 
 // Attach to the window object for debugging:
 window.gameState = new State(PERMANENT, /*saved = */ undefined);
-

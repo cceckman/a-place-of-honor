@@ -77,12 +77,17 @@ input.action {
 button.action {
     width: 5em;
     padding: 2px;
+    margin-right: 5px;
 
     background: var(--input-background);
     color: var(--input-text);
 
     border: none;
     border-radius: var(--curve);
+}
+
+#telemetry {
+    width: 7em;
 }
 
 p {
