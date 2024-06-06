@@ -313,6 +313,9 @@ export const PERMANENT = {
                 "into the hole": "hot cell tunnel",
                 "into hole": "hot cell tunnel",
                 "into the hole": "hot cell tunnel",
+                "out": "hot cell tunnel",
+                "up": "hot cell tunnel",
+                "tunnel": "hot cell tunnel",
             },
             rad_rate: 0.5,
             senses: {
