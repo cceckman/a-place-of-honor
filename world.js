@@ -20,6 +20,8 @@ const INFOCENTER_PANEL1 = [...WARNING_LINES.slice(0, 2), "not - place -- honor",
  *          TODO: Unused.
  *      writing: Text to display as writing on this panel.
  *      rosetta: (String of) Text that is translated on this panel. Percieving the panel may add these to knowledge.
+ *      writtenWords: (String of) Text that the player has written on this item. Words are appended to this string
+ *          with the "write" command from the player.
  *      passive: Sense table, presented passively (i.e. when just looking at the room / container.)
  *          These should be sentence fragments -- they fit into the list.
  *      sense: Sense table, presented actively (i.e. when specifically looking at this item)
