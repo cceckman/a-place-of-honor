@@ -104,7 +104,9 @@ export const PERMANENT = {
                 hear:
                     `The leader asks you to go west to the place of honor, and bring back its power to your community.
 The leader notes you have a jar of paint strapped to your belt and tells you to mark your knowledge so
- others may learn of the place's honor and power.`
+ others may learn of the place's honor and power.`,
+                taste: "You think it would be unwise to try to taste the leader.",
+                touch: "You embrace the leader. You know the risks they are asking of you."
             }
         },
         leader_tablet: {
