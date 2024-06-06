@@ -217,7 +217,7 @@ The leader motions to the jar of paint strapped to your belt and tells you to ma
                 "touch": "a hard and smooth disc, head-sized, loose on the ground"
             },
             sense: {
-                "touch": "A hard and smooth disc, head-sized, with symbols engraved on it. It is hard, and smoother than stone. The engraving is finer, shallow and narrow, but clear. It is cold.",
+                "touch": "A head-sized disc with symbols engraved on it. It is hard, and smoother than stone. The engraving is finer, shallow and narrow, but clear. It is cold.",
                 "see": "The disc has more ancient text on it, as well as some unfamiliar symbols, larger than the letters.",
                 "hear": "The disc makes a clinking sound when tapped.",
             },
