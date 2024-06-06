@@ -453,7 +453,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
         var logMessage = this.textin.value;
         var tags = {
-            user: this.player.uuid, // WARNING: this value will have a very high cardinality
+            player: this.player.uuid, // WARNING: this value will have a very high cardinality
             room: this.player.location,
             damageLevel: this.player.currentDamageLevel.toString(),
             level: this.lastError ? "error" : "info",
