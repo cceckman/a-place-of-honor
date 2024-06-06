@@ -19,7 +19,7 @@ const DEFAULT_ITEM_SENSES = {
 
 const START_LOCATION = "home";
 const MOVE_VERBS = ["go", "exit", "move"];
-const RESTART_VERBS = ["restart", "continue"];
+const RESTART_VERBS = ["restart", "continue", "yes"];
 const DAMAGE_LEVELS = [
     { symptoms: [], nextThreshold: 100 },
     { symptoms: ["You cough."], nextThreshold: 200 },
@@ -64,14 +64,13 @@ const INSPECTIONS = {
     touch: ["feel"],
 };
 
-const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops</div>
+const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
 
-<div>Return to the place of honor as a new investigator? ("restart")</div>`;
+<div>Return to the place of honor as a new investigator?<br />("restart")</div>`;
 
 function canonicalizeSense(verb) {
-    const lower = verb.toLowerCase();
     for (const [canon, aliases] of Object.entries(INSPECTIONS)) {
-        if (lower === canon || aliases.includes(lower)) {
+        if (verb === canon || aliases.includes(verb)) {
             return canon;
         }
     }
@@ -149,14 +148,16 @@ class Room {
     constructor(roomid, permanent, saved) {
         const static_room = permanent.rooms[roomid];
 
-        this.rad_rate = static_room.rad_rate;
 
         // mapping of sense to description
         this.senses = static_room.senses;
-
         this.exits = static_room.exits;
+        this.rad_rate = static_room.rad_rate;
+        this.droneVolume = static_room.droneVolume;
 
-        this.drone_volume = static_room.drone_volume;
+        this.lightLevel = saved?.rooms[roomid]?.lightLevel ??
+            permanent.rooms[roomid].lightLevel ??
+            0;
 
         this.items = {}; // ID to description
         if (saved !== null && saved !== undefined) {
@@ -173,6 +174,10 @@ class Room {
                 this.items[itemId] = item;
             }
         });
+    }
+
+    getLightLevel() {
+        return Object.values(this.items).reduce((acc, item) => acc + (item.lightLevel ?? 0), this.lightLevel);
     }
 }
 
@@ -244,6 +249,7 @@ class State {
 
         main.appendChild(this.music.musicToggle);
 
+        this.lastError = ""
         this.render();
     }
 
@@ -251,11 +257,32 @@ class State {
         this.player = new Player(saved)
         this.currentDescription = "";
 
-        this.music.setDroneVolume(this.currentRoom().drone_volume)
+        this.music.setDroneVolume(this.currentRoom().droneVolume)
         this.music.restartArpeggio();
     }
 
-    render(error = "") {
+    // Functions that act based on sight -- for items, or for rooms --
+    // should check the "light level" before having their effect.
+    // This is the sum of:
+    // - the room's ambient light (e.g. sky)
+    // - any items in the room that glow (e.g. lightbulbs)
+    //   - multiple sources can sum
+    // - any items in the room / state that would _prevent_ light transmission
+    //   (...power outage???)
+    //
+    // If greater than zero, the investigator can see.
+    //
+    // TODO:
+    // - Investigator-carried lights
+    // - Investigator blindness, as a -Infinity value
+    // TODO: Generalize across senses? An acrid smell or a gas mask,
+    // earplugs to cancel hearing... deafness from a "bang"
+    getLightLevel() {
+        // TODO: implement blindness, summing a player's light-level value.
+        return this.currentRoom().getLightLevel()
+    }
+
+    render() {
         console.log(this);
 
         // TODO - if player is null that means they died
@@ -271,13 +298,17 @@ class State {
             this.symptoms.innerText = selectedSymptom;
         }
 
-        if (!this.currentDescription) {
-            this.currentDescription = this.renderPassiveSenses();
+        if (this.currentDescription) {
+            this.perception.innerHTML = this.currentDescription;
+        } else {
+            // Note: we re-render this every time, rather than setting currentDescription,
+            // so that we get updates if e.g. items change.
+            this.perception.innerHTML = this.renderPassiveSenses();
         }
-        this.perception.innerHTML = this.currentDescription;
 
-        this.errors.innerText = error;
-        if (!error) {
+        this.errors.innerText = this.lastError;
+        if (this.lastError === "") {
+            // No error in the last input; clear it.
             this.textin.value = "";
         }
 
@@ -285,6 +316,13 @@ class State {
     }
 
     renderPassiveSense(sense) {
+        // TODO: distinguish "active" and "passive" touch.
+        // "active" touch would be walking around and poking things, feeling out the walls;
+        // "passive" touch would be airflow, temperature, etc.
+        if (sense === "see" && this.getLightLevel() <= 0) {
+            return `You cannot see.`
+        }
+
         const room = this.currentRoom();
         let senses = [room.senses[sense]];
         const itemPassives = Object.entries(room.items).map(
@@ -299,8 +337,17 @@ class State {
         if (senses.length === 0) {
             return DEFAULT_ROOM_SENSES[sense];
         }
-        return `You ${sense} ${senses.join(", ")}.`;
+        let joiner = ", ";
+        for (const sense of senses) {
+            if (sense.includes(",")) {
+                joiner = "; "
+                break;
+            }
+        }
+
+        return `You ${sense} ${senses.join(joiner)}.`;
     }
+
     renderPassiveSenses() {
         return `
 ${Object.keys(DEFAULT_ROOM_SENSES)
@@ -320,42 +367,50 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
         const tokenizedAction = this.textin.value.split(" ");
         const verb = tokenizedAction[0].toLowerCase();
-        const restString = tokenizedAction.slice(1).join(" ");
-        let error = `I don't know ${verb}`;
+        const restString = tokenizedAction.slice(1).join(" ").trim().toLowerCase();
 
         // TODO - if player is null only allow the "restart" action (or "continue", or whatever we call it)
         if (this.player === null) {
             if (RESTART_VERBS.includes(verb)) {
                 this.newInvestigator()
-                error = "";
+                this.lastError = "";
             } else {
-                error = `I can't ${verb}. I am dead.`;
+                this.lastError = `I can't ${verb}. I am dead.`;
             }
         } else {
             // i.e. player is alive
             // const restArray = tokenizedAction.slice(1);
             const perceptionVerb = canonicalizeSense(verb);
             if (MOVE_VERBS.includes(verb)) {
-                error = this.movePlayer(restString);
+                this.lastError = this.movePlayer(restString);
             } else if (perceptionVerb) {
-                error = await this.inspect(perceptionVerb, restString);
-            } else if (!verb) {
+                this.lastError = await this.inspect(perceptionVerb, restString);
+            } else if (verb && restString) {
+                // Unknown verb, but there's also an object.
+                // Try applying the verb to the object.
+                // Take the error, or the empty string if Charles forgot to add a return value
+                // from the function.
+                this.lastError = String(this.itemAction(verb, restString) ?? "");
+            } else if (verb) {
+                // Unknown action.
+                this.lastError = `I don't know ${verb}`;
+            } else {
                 // Empty "enter"; clear the most-recent-output,
                 // to go back to the room description.
                 this.currentDescription = "";
-                error = "";
+                this.lastError = "";
             }
         }
         this.applyDose();
-        this.render(error);
+        this.render();
 
         var logMessage = this.textin.value;
         var tags = {
             user: "random",
-            level: error ? "error" : "info",
+            level: this.lastError ? "error" : "info",
             trigger: "action",
         };
-        if (error !== null) {
+        if (this.lastError !== null) {
             pushToLoki(logMessage, tags)
                 .then((data) => {
                     console.log("Response:", data);
@@ -366,13 +421,37 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         }
     }
 
+    // Try to perform the provided action with any items in the room.
+    itemAction(verb, rest) {
+        const room = this.currentRoom();
+        for (const [itemId, item] of Object.entries(room.items)) {
+            if (!item.aliases.includes(rest)) {
+                continue;
+            }
+            // Found the item:
+            console.log(`applying ${verb} to ${itemId}`)
+            for (const action of (item.action ?? [])) {
+                if (action.aliases.includes(verb)) {
+                    // Found it!
+                    return action.callback(item, this);
+                }
+            }
+            // Found no such action for this item.
+            return `Cannot ${verb} ${rest}`;
+        }
+        return `Cannot find ${rest}`;
+    }
+
     movePlayer(direction) {
         const destination = this.currentRoom().exits[direction];
         if (destination) {
             this.player.location = destination;
             this.currentDescription = this.renderPassiveSenses();
-            this.music.setDroneVolume(this.currentRoom().drone_volume);
+            this.music.setDroneVolume(this.currentRoom().droneVolume);
             return "";
+        }
+        if (direction === "") {
+            return "Where do you want to go?"
         }
         return `Cannot move to ${direction}`;
     }
@@ -392,9 +471,21 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 this.currentDescription =
                     item.sense[verb] ?? DEFAULT_ITEM_SENSES[verb];
 
+                // Special-casing sight:
+                if (verb !== "see") {
+                    return "";
+                }
+
+                // Sight special cases:
+                if (this.getLightLevel() <= 0) {
+                    this.currentDescription = `You cannot see the ${itemName}.`
+                    return ""
+                }
+
                 // If this verb allows perceiving writing,
                 // and we have writing, output it.
-                if (["see"].includes(verb) && item.writing) {
+                // TODO: Allow writing-by-touch, for engraved writing
+                if (item.writing) {
                     let hidden = await hideText(
                         item.writing,
                         this.player.knowledge
@@ -406,7 +497,7 @@ The text reads:
 `;
                 }
 
-                if (["see"].includes(verb) && item.rosetta && this.learn(item.rosetta)) {
+                if (item.rosetta && this.learn(item.rosetta)) {
                     let hidden = await hideText(item.rosetta, new Set());
                     let unhidden = item.rosetta;
 
@@ -468,6 +559,20 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         ) {
             this.player.currentDamageLevel = this.player.currentDamageLevel + 1;
             this.music.increaseDetune();
+
+            // Add a symptom from the current level.
+            let availableSymptoms =
+                DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
+            if (availableSymptoms.length) {
+                let selectedSymptomIndex = Math.floor(
+                    Math.random() * availableSymptoms.length
+                );
+                let selectedSymptom = availableSymptoms[selectedSymptomIndex];
+                this.player.symptoms.add(selectedSymptom);
+            }
+
+            // Re-render:
+            this.render()
         }
 
         // if there aren't any more damage levels above the current one
@@ -478,15 +583,6 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         }
 
         // select a symptom for the player based on their dosage
-        let availableSymptoms =
-            DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
-        if (availableSymptoms.length) {
-            let selectedSymptomIndex = Math.floor(
-                Math.random() * availableSymptoms.length
-            );
-            let selectedSymptom = availableSymptoms[selectedSymptomIndex];
-            this.player.symptoms.add(selectedSymptom);
-        }
 
         // TODO: compute time until next threshhold at current player.dosage
         // set dosage callback and store timer on state
