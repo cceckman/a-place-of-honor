@@ -201,7 +201,13 @@ class Room {
 
 class Player {
     constructor(saved) {
-        this.uuid = crypto.randomUUID();
+        try {
+            this.uuid = saved?.player?.uuid ?? crypto.randomUUID();
+        } catch (error) {
+            // randomUUID is not available in http.
+            console.log(error)
+            this.uuid = "unknown"
+        }
         this.location = saved?.player?.location ?? START_LOCATION;
         this.dosage = saved?.player?.dosage ?? 0;
         this.damage = saved?.player?.damage ?? 0;
@@ -220,6 +226,7 @@ class Player {
 
     save() {
         return {
+            uuid: this.uuid,
             location: this.location,
             dosage: this.dosage,
             damage: this.damage,
