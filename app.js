@@ -64,12 +64,16 @@ const INSPECTIONS = {
     touch: ["feel"],
 };
 
+const INTERACTIONS = {
+    write: ["paint", "draw"],
+}
+
 const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
 
 <div>Return to the place of honor as a new investigator?<br />("restart")</div>`;
 
-function canonicalizeSense(verb) {
-    for (const [canon, aliases] of Object.entries(INSPECTIONS)) {
+function canonicalizeVerb(verb, type = INSPECTIONS) {
+    for (const [canon, aliases] of Object.entries(type)) {
         if (verb === canon || aliases.includes(verb)) {
             return canon;
         }
@@ -167,6 +171,8 @@ class Room {
                 }
             }
         }
+
+        this.writeableItem = static_room.writeableItem;
         // static.rooms[].item contains just item IDs;
         // separate "items" table has the other state
         Object.entries(permanent.items).forEach(([itemId, item]) => {
@@ -381,11 +387,15 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         } else {
             // i.e. player is alive
             // const restArray = tokenizedAction.slice(1);
-            const perceptionVerb = canonicalizeSense(verb);
+            const perceptionVerb = canonicalizeVerb(verb, INSPECTIONS);
+            const interactionVerb = canonicalizeVerb(verb, INTERACTIONS);
             if (MOVE_VERBS.includes(verb)) {
                 this.lastError = this.movePlayer(restString);
             } else if (perceptionVerb) {
                 this.lastError = await this.inspect(perceptionVerb, restString);
+            } else if (interactionVerb) {
+                // TODO (when adding new interactions): refactor for more interaction types
+                this.lastError = this.attemptWrite(restString);
             } else if (verb && restString) {
                 // Unknown verb, but there's also an object.
                 // Try applying the verb to the object.
@@ -495,6 +505,11 @@ The text reads:
 <blockquote>${hidden}</blockquote>
 `;
                 }
+                
+                if (item.writtenWords) {
+                    this.currentDescription += `<br/>
+You see more recent markings describing the symbols for the following words: ${item.writtenWords}`;
+                }
 
                 if (item.rosetta && this.learn(item.rosetta)) {
                     let hidden = await hideText(item.rosetta, new Set());
@@ -511,6 +526,32 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             }
         }
         return `There is no ${itemName} nearby.`;
+    }
+
+    attemptWrite(text) {
+        const knownWords = Array.from(this.player.knowledge);
+        if (knownWords.length === 0) {
+            this.currentDescription = "You don't know any words to write.";
+            return "";
+        }
+        if(!text) {
+            this.currentDescription = `What would you like to write? You know ${knownWords.join(", ")}`;
+            return "";
+        }
+        if(!knownWords.includes(text)) {
+            return `You don't know ${text}. You know ${knownWords.join(", ")}.`;
+        }
+        const currentRoomWriteableItem = this.currentRoom().items[this.currentRoom().writeableItem];
+        if (!currentRoomWriteableItem) {
+            return "There is nothing to write on here.";
+        }
+        if (currentRoomWriteableItem.rosetta.includes(text)) {
+            return `${text} is already written here.`;
+        }
+        currentRoomWriteableItem.rosetta = `${currentRoomWriteableItem.rosetta || ""} ${text}`.trim();
+        currentRoomWriteableItem.writtenWords = `${currentRoomWriteableItem.writtenWords || ""} ${text}`.trim();
+        this.currentDescription = currentRoomWriteableItem.write;
+        return "";
     }
 
     // Returns true if something new was learned.
