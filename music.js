@@ -76,6 +76,9 @@ export default class Music {
         });
 
         this.melodysequence = new Tone.Part((time, note) => {
+            melodySynth.set({
+                detune: gaussianRandom() * this.detune
+            });
             melodySynth.triggerAttackRelease(note, 0.25, time);
         }, melodyPart);
 

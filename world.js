@@ -112,11 +112,13 @@ export const PERMANENT = {
                 see: "A gray stone monolith, twice your height, with writing engraved into it. Some of the writing has been worn away.",
                 touch: "The monolith is cold and smooth.",
                 taste: "Stony and mineral-like.",
+                write: "You carefully paint to help your community understand the strange symbols found in this place."
             },
             location: "outside",
             passive: {
                 see: "a gray stone monolith",
             },
+            rosetta: ""
         },
         info_text_1: {
             aliases: ["first panel", "panels", "panel", "writing", "damaged panel", "altered panel"],
@@ -229,7 +231,7 @@ export const PERMANENT = {
             ]
         },
         "hot cell light": {
-            aliases: ["light", "ceiling", "whine"],
+            aliases: ["light", "ceiling", "whine", "globe"],
             moveable: false,
             location: "nowhere",
             passive: {
@@ -268,6 +270,7 @@ export const PERMANENT = {
             senses: {},
             droneVolume: -13,
             lightLevel: 1,
+            writeableItem: "monolith1",
         },
         "information center": {
             exits: {

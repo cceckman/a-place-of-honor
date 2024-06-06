@@ -166,6 +166,8 @@ class Room {
                 }
             }
         }
+
+        this.writeableItem = static_room.writeableItem;
         // static.rooms[].item contains just item IDs;
         // separate "items" table has the other state
         Object.entries(permanent.items).forEach(([itemId, item]) => {
@@ -384,6 +386,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 this.lastError = this.movePlayer(restString);
             } else if (perceptionVerb) {
                 this.lastError = await this.inspect(perceptionVerb, restString);
+            } else if (verb === "write") {
+                this.lastError = this.attemptWrite(restString);
             } else if (verb && restString) {
                 // Unknown verb, but there's also an object.
                 // Try applying the verb to the object.
@@ -479,6 +483,11 @@ The text reads:
 <blockquote>${hidden}</blockquote>
 `;
                 }
+                
+                if (item.writtenWords) {
+                    this.currentDescription += `<br/>
+You see more recent markings describing the symbols for the following words: ${item.writtenWords}`;
+                }
 
                 if (item.rosetta && this.learn(item.rosetta)) {
                     let hidden = await hideText(item.rosetta, new Set());
@@ -495,6 +504,32 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
             }
         }
         return `There is no ${itemName} nearby.`;
+    }
+
+    attemptWrite(text) {
+        const knownWords = Array.from(this.player.knowledge);
+        if (knownWords.length === 0) {
+            this.currentDescription = "You don't know any words to write.";
+            return "";
+        }
+        if(!text) {
+            this.currentDescription = `What would you like to write? You know ${knownWords.join(", ")}`;
+            return "";
+        }
+        if(!knownWords.includes(text)) {
+            return `You don't know ${text}. You know ${knownWords.join(", ")}.`;
+        }
+        const currentRoomWriteableItem = this.currentRoom().items[this.currentRoom().writeableItem];
+        if (!currentRoomWriteableItem) {
+            return "There is nothing to write on here.";
+        }
+        if (currentRoomWriteableItem.rosetta.includes(text)) {
+            return `${text} is already written here.`;
+        }
+        currentRoomWriteableItem.rosetta = `${currentRoomWriteableItem.rosetta || ""} ${text}`.trim();
+        currentRoomWriteableItem.writtenWords = `${currentRoomWriteableItem.writtenWords || ""} ${text}`.trim();
+        this.currentDescription = this.currentRoom().senses.write;
+        return "";
     }
 
     // Returns true if something new was learned.
