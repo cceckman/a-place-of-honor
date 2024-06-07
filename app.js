@@ -4,6 +4,15 @@ import Telemetry from "./telemetry.js";
 
 const STORAGE_KEY = `APlaceOfHonor-SaveData`;
 
+const HELP_TEXT = `<div>You are a human. It is the year ||||</div>
+<div>Everything has changed. But your senses remain.</div>
+<div>LOOK</div>
+<div>LISTEN</div>
+<div>TOUCH</div>
+<div>SMELL</div>
+<div>TASTE</div>
+<div>They are counting on you.</div>`;
+
 const DEFAULT_ROOM_SENSES = {
     see: "You see nothing.",
     hear: "You hear nothing.",
@@ -77,6 +86,10 @@ const INSPECTIONS = {
 
 const INTERACTIONS = {
     write: ["paint", "draw"],
+};
+
+const UI_INTERACTIONS = {
+    help: ["commands"],
 };
 
 const DEATH_DESCRIPTION = `<div>You are overcome. Darkness descends and your breathing stops.</div>
@@ -517,6 +530,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             // const restArray = tokenizedAction.slice(1);
             const perceptionVerb = canonicalizeVerb(verb, INSPECTIONS);
             const interactionVerb = canonicalizeVerb(verb, INTERACTIONS);
+            const interfaceVerb = canonicalizeVerb(verb, UI_INTERACTIONS);
             if (MOVE_VERBS.includes(verb)) {
                 this.lastError = this.movePlayer(restString);
                 if (!this.lastError) {
@@ -527,6 +541,8 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             } else if (interactionVerb) {
                 // TODO (when adding new interactions): refactor for more interaction types
                 this.lastError = this.attemptWrite(restString);
+            } else if (interfaceVerb) {
+                this.lastError = this.uiInteraction(interfaceVerb, restString);
             } else if (verb && restString) {
                 // TODO:: Allow for multi-word verbs, e.g. "pick up"
 
