@@ -159,8 +159,6 @@ async function hideText(original, knowledge) {
     return output;
 }
 
-
-
 class Room {
     constructor(roomid, permanent, saved) {
         const static_room = permanent.rooms[roomid];
@@ -174,20 +172,19 @@ class Room {
         this.writeableItem = static_room.writeableItem;
 
         this.lightLevel =
-            saved?.rooms[roomid]?.lightLevel ??
-            permanent.rooms[roomid].lightLevel ??
-            0;
-        const permanent_ids =
-            Object.entries(permanent.items).filter(([_, item]) => {
-                return item.location == roomid
-            }).map(([id, _]) => id);
+            saved?.rooms[roomid]?.lightLevel ?? permanent.rooms[roomid].lightLevel ?? 0;
+        const permanent_ids = Object.entries(permanent.items)
+            .filter(([_, item]) => {
+                return item.location == roomid;
+            })
+            .map(([id, _]) => id);
         this.itemIds = new Set(saved_room ? saved_room.itemIds : permanent_ids);
     }
 
     getLightLevel(items) {
         return Array.from(this.itemIds).reduce((acc, itemId) => {
             let item = items[itemId];
-            return acc + (item.lightLevel ?? 0)
+            return acc + (item.lightLevel ?? 0);
         }, this.lightLevel);
     }
 
@@ -195,7 +192,7 @@ class Room {
         return {
             itemIds: Array.from(this.itemIds),
             lightLevel: this.lightLevel,
-        }
+        };
     }
 }
 
@@ -205,8 +202,8 @@ class Player {
             this.uuid = saved?.player?.uuid ?? crypto.randomUUID();
         } catch (error) {
             // randomUUID is not available in http.
-            console.log(error)
-            this.uuid = "unknown"
+            console.log(error);
+            this.uuid = "unknown";
         }
         this.location = saved?.player?.location ?? START_LOCATION;
         this.dosage = saved?.player?.dosage ?? 0;
@@ -234,21 +231,21 @@ class Player {
             symptoms: Array.from(this.symptoms),
             itemIds: Array.from(this.itemIds),
             knowledge: Array.from(this.knowledge),
-        }
+        };
     }
 }
 
 class Item {
     constructor(itemid, permanent, saved) {
         const perm = permanent.items[itemid];
-        const save = (saved ? saved.items[itemid] : {})
+        const save = saved ? saved.items[itemid] : {};
         // Immutable properties:
-        this.aliases = perm.aliases
-        this.moveable = perm.moveable
-        this.passive = perm.passive
-        this.sense = perm.sense
-        this.action = perm.action
-        this.writing = perm.writing
+        this.aliases = perm.aliases;
+        this.moveable = perm.moveable;
+        this.passive = perm.passive;
+        this.sense = perm.sense;
+        this.action = perm.action;
+        this.writing = perm.writing;
         this.write = perm.write;
         this.lightLevel = perm.lightLevel;
 
@@ -261,14 +258,14 @@ class Item {
         return {
             rosetta: this.rosetta,
             writtenWords: this.writtenWords,
-        }
+        };
     }
 
     save() {
         return {
             rosetta: this.rosetta,
             writtenWords: this.writtenWords,
-        }
+        };
     }
 }
 
@@ -282,12 +279,12 @@ class State {
             this.rooms[roomid] = new Room(roomid, permanent, saved);
         }
 
-        this.items = {}
+        this.items = {};
         for (const itemid in permanent.items) {
             this.items[itemid] = new Item(itemid, permanent, saved);
         }
-        this.newInvestigator(saved)
-        console.log(this.rooms)
+        this.newInvestigator(saved);
+        console.log(this.rooms);
 
         const terminal = document.getElementById("terminal");
         while (terminal.firstChild) {
@@ -340,7 +337,7 @@ class State {
         saveControl.addEventListener("click", (ev) => {
             ev.preventDefault();
             this.save();
-        })
+        });
 
         let clearSaveControl = document.createElement("button");
         clearSaveControl.id = "clear save";
@@ -349,12 +346,12 @@ class State {
         clearSaveControl.addEventListener("click", (ev) => {
             ev.preventDefault();
             this.handleClearSave(ev);
-        })
+        });
 
         controls.appendChild(saveControl);
         controls.appendChild(clearSaveControl);
 
-        this.lastError = ""
+        this.lastError = "";
         this.render();
     }
 
@@ -362,30 +359,29 @@ class State {
     save() {
         this.applyDose();
         // Serialize what we can:
-        let saveData = {}
+        let saveData = {};
         if (this.player) {
-            saveData.player = this.player.save()
+            saveData.player = this.player.save();
         }
-        saveData.rooms = {}
+        saveData.rooms = {};
         for (const [roomId, room] of Object.entries(this.rooms)) {
             saveData.rooms[roomId] = room.save();
         }
-        saveData.items = {}
+        saveData.items = {};
         for (const [itemId, item] of Object.entries(this.items)) {
             saveData.items[itemId] = item.save();
         }
         const saveString = JSON.stringify(saveData);
         window.localStorage.setItem(STORAGE_KEY, saveString);
-        console.log("saved")
+        console.log("saved");
     }
 
     // Clear any saved data and reload.
     handleClearSave() {
-        console.log("Clearing save")
+        console.log("Clearing save");
         window.localStorage.removeItem(STORAGE_KEY);
-        start()
+        start();
     }
-
 
     newInvestigator(saved) {
         this.player = new Player(saved);
@@ -398,10 +394,7 @@ class State {
     // Return a Set of item IDs from current room and inventory.
     currentItemIds() {
         // Firefox doesn't have .union.
-        return new Set([
-            ...this.currentRoom().itemIds,
-            ...this.player.itemIds,
-        ])
+        return new Set([...this.currentRoom().itemIds, ...this.player.itemIds]);
     }
 
     // Functions that act based on sight -- for items, or for rooms --
@@ -441,7 +434,7 @@ class State {
         } else {
             const selectedSymptom =
                 Array.from(this.player.symptoms)[
-                Math.floor(Math.random() * this.player.symptoms.size)
+                    Math.floor(Math.random() * this.player.symptoms.size)
                 ] ?? "";
             this.symptoms.innerText = selectedSymptom;
         }
@@ -469,11 +462,9 @@ class State {
 
         const room = this.currentRoom();
         let senses = [room.senses[sense]];
-        const itemPassives = Array.from(room.itemIds).map(
-            (itemId) => {
-                return this.items[itemId].passive[sense];
-            }
-        );
+        const itemPassives = Array.from(room.itemIds).map((itemId) => {
+            return this.items[itemId].passive[sense];
+        });
         senses = [...senses, ...itemPassives].filter((sense) => sense);
         if (senses.length > 1) {
             senses[senses.length - 1] = `and ${senses[senses.length - 1]}`;
@@ -495,10 +486,10 @@ class State {
     renderPassiveSenses() {
         return `
 ${Object.keys(DEFAULT_ROOM_SENSES)
-                .map((sense) => {
-                    return this.renderPassiveSense(sense);
-                })
-                .join("<br />")}
+    .map((sense) => {
+        return this.renderPassiveSense(sense);
+    })
+    .join("<br />")}
 `;
     }
 
@@ -511,11 +502,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
 
         const tokenizedAction = this.textin.value.split(" ");
         const verb = tokenizedAction[0].toLowerCase();
-        const restString = tokenizedAction
-            .slice(1)
-            .join(" ")
-            .trim()
-            .toLowerCase();
+        const restString = tokenizedAction.slice(1).join(" ").trim().toLowerCase();
 
         // TODO - if player is null only allow the "restart" action (or "continue", or whatever we call it)
         if (this.player === null) {
@@ -547,9 +534,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 // Try applying the verb to the object.
                 // Take the error, or the empty string if Charles forgot to add a return value
                 // from the function.
-                this.lastError = String(
-                    this.itemAction(verb, restString) ?? ""
-                );
+                this.lastError = String(this.itemAction(verb, restString) ?? "");
             } else if (verb) {
                 // Unknown action.
                 this.lastError = `I don't know ${verb}`;
@@ -576,16 +561,14 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
             level: this.lastError ? "error" : "info",
             trigger: "action",
         };
-        if (this.lastError !== null) {
-            this.telemetry.log(logMessage, tags).catch((error) => {
-                console.error("Error:", error);
-            });
-        }
+        this.telemetry.log(logMessage, tags).catch((error) => {
+            console.error("Error:", error);
+        });
     }
 
     // Try to perform the provided action with any items in the room.
     itemAction(verb, rest) {
-        const localItems = this.currentItemIds()
+        const localItems = this.currentItemIds();
         for (const itemId of localItems) {
             let item = this.items[itemId];
             if (!item.aliases.includes(rest)) {
@@ -630,8 +613,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
         for (const itemId of this.currentItemIds()) {
             let item = this.items[itemId];
             if (item.aliases.includes(itemName)) {
-                this.currentDescription =
-                    item.sense[verb] ?? DEFAULT_ITEM_SENSES[verb];
+                this.currentDescription = item.sense[verb] ?? DEFAULT_ITEM_SENSES[verb];
 
                 // Special-casing sight:
                 if (verb !== "see") {
@@ -649,10 +631,7 @@ ${Object.keys(DEFAULT_ROOM_SENSES)
                 // and we have writing, output it.
                 // TODO: Allow writing-by-touch, for engraved writing
                 if (item.writing) {
-                    let hidden = await hideText(
-                        item.writing,
-                        this.player.knowledge
-                    );
+                    let hidden = await hideText(item.writing, this.player.knowledge);
                     hidden = hidden.replace(/(?:\r\n|\r|\n)/g, "<br />");
                     this.currentDescription += `<br/>
 The text reads:
@@ -711,6 +690,14 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         return "";
     }
 
+    uiInteraction(verb, remainder) {
+        this.currentDescription = verb;
+        if (verb === "help") {
+            this.currentDescription = HELP_TEXT;
+            return "";
+        }
+    }
+
     // Returns true if something new was learned.
     learn(text) {
         const knownBefore = this.player.knowledge.size;
@@ -744,26 +731,19 @@ You conclude <q>${hidden}</q> means <q>${unhidden}</q>.
         let timeSinceLastDosage = now - this.player.lastDoseTimestamp;
         this.player.lastDoseTimestamp = now;
         // update dosage based on time since last dose
-        this.player.dosage +=
-            (timeSinceLastDosage * this.currentRoom().rad_rate) / 1000;
+        this.player.dosage += (timeSinceLastDosage * this.currentRoom().rad_rate) / 1000;
         // apply dosage to damage
         this.player.damage += (timeSinceLastDosage * this.player.dosage) / 1000;
 
         // update player's dosage threshold
-        if (
-            this.player.damage >=
-            DAMAGE_LEVELS[this.player.currentDamageLevel].nextThreshold
-        ) {
+        if (this.player.damage >= DAMAGE_LEVELS[this.player.currentDamageLevel].nextThreshold) {
             this.player.currentDamageLevel = this.player.currentDamageLevel + 1;
             this.music.increaseDetune();
 
             // Add a symptom from the current level.
-            let availableSymptoms =
-                DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
+            let availableSymptoms = DAMAGE_LEVELS[this.player.currentDamageLevel]?.symptoms ?? [];
             if (availableSymptoms.length) {
-                let selectedSymptomIndex = Math.floor(
-                    Math.random() * availableSymptoms.length
-                );
+                let selectedSymptomIndex = Math.floor(Math.random() * availableSymptoms.length);
                 let selectedSymptom = availableSymptoms[selectedSymptomIndex];
                 this.player.symptoms.add(selectedSymptom);
             }
@@ -791,7 +771,7 @@ function start() {
     // tone.js doesn't like a new controller getting instantiated
     let music = undefined;
     if (window.gameState) {
-        window.gameState.music?.stopMusic()
+        window.gameState.music?.stopMusic();
         music = window.gameState.music;
     }
 
@@ -803,10 +783,9 @@ function start() {
     } catch (error) {
         console.log("Error in recovering saved state: ", error);
         window.gameState = new State(PERMANENT, null, music);
-        window.gameState.lastError = "Could not recover saved state."
-        window.gameState.render()
+        window.gameState.lastError = "Could not recover saved state.";
+        window.gameState.render();
     }
 }
 
-start()
-
+start();
